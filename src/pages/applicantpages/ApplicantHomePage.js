@@ -22,6 +22,7 @@ import ApplicantBasicDetails from '../../components/applicantcomponents/Applican
 import ResumeBuilder from '../../components/applicantcomponents/ResumeBuilder';
 import ApplicantTakeTest from '../../components/applicantcomponents/ApplicantTakeTest';
 import VerifiedBadges from '../../components/applicantcomponents/VerifiedBadges';
+import MockInterviewByAi from '../../components/applicantcomponents/MockInterviewByAI';
 
 
 function ApplicantHomePage() {
@@ -114,6 +115,9 @@ function ApplicantHomePage() {
         case '/applicant-verified-badges':
           setActiveRoute('badges');
         break;
+        case '/mock-interview-by-ai':
+          setActiveRoute('aiInterview');
+        break;
       default:
         setActiveRoute('');
         break;
@@ -143,6 +147,7 @@ function ApplicantHomePage() {
      {activeRoute === 'abdf' && <ApplicantBasicDetails />}
      {activeRoute === 'taketest' && <ApplicantTakeTest />}
      {activeRoute === 'badges' && <VerifiedBadges />}
+     {activeRoute === 'aiInterview' && <MockInterviewByAi/>}
       </div> 
   )
 }
