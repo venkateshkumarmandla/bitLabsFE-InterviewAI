@@ -528,6 +528,44 @@ const ApplicantDashboard = () => {
                     </div>
                   </div>
                 </div>
+                {!showIcon && (
+                  <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
+                    <div className="card" style={{ cursor: 'pointer', backgroundColor: '#FFF', fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
+                      <div className={!isWideScreen ? 'resumecard' : ''}>
+                        <div className="resumecard-content">
+                          <div className="resumecard-text">
+                            <div className="resumecard-heading">
+                              <h2 className="heading1">Mock interview by AI
+                              </h2>
+                              <div className="" style={{ fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
+                                Check your performance in your skill set by taking AI based mock tests
+                              </div>
+                            </div>
+                            <div className="resumecard-button">
+                              <Link
+                                to="/mock-interview-by-ai"
+                                className="button-link1"
+                                style={linkStyle}
+                                onMouseEnter={() => setIsHovered(true)}
+                                onMouseLeave={() => setIsHovered(false)}
+                              >
+                                <span className="button button-custom" style={spanStyle}>Start</span>
+                              </Link>
+                            </div>
+                          </div>
+
+                          <div className="resumecard-icon" style={{ marginLeft: 'auto' }}>
+                            <img
+                              src={Taketest}
+                              alt="Taketest"
+                              style={{ width: '160px', height: 'auto', objectFit: 'contain', marginTop: '10px' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
