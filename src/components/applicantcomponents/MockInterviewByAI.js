@@ -30,7 +30,8 @@ const MockInterviewByAi = () => {
     fontWeight: '600',
 
   };
-  
+
+
   const handleNext = () => {
     const updatedAnswers = [...answers];
     updatedAnswers[currentIndex] = {
@@ -61,16 +62,20 @@ const MockInterviewByAi = () => {
         const jwtToken = localStorage.getItem("jwtToken");
         console.log(jwtToken);
         console.log(userId);
-        const response = await axios.get(`${apiUrl}/skill-badges/${userId}/skill-badges`, {
+
+        // http://localhost:8081/applicantprofile/1/skills
+        // const response = await axios.get(`${apiUrl}/skill-badges/${userId}/skill-badges`, {
+                const response = await axios.get(`${apiUrl}/applicantprofile/${userId}/skills`, {
+
           headers: { Authorization: `Bearer ${jwtToken}` }
         });
 
         const data = response.data;
         console.log(data);
-        const names = data.skillsRequired.map(skills => skills.skillName);
-        const names2 = data.applicantSkillBadges.map(skills => skills.skillBadge.name);
-        const combined = [...names, ...names2];
-        setSkills(combined);
+        // const names = data.skillsRequired.map(skills => skills.skillName);
+        // const names2 = data.applicantSkillBadges.map(skills => skills.skillBadge.name);
+        // const combined = [...names, ...names2];
+        setSkills(data);
 
       } catch (error) {
         console.error("Failed to fetch skill badges:", error);
