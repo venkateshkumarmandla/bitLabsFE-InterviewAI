@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_KEY } from '../../services/ApplicantAPIService';
 
-const API_KEY = 'AIzaSyAsYnprqHafTwJbq8J2QbsbiK1FyR93spk';
+
 
 // Helper function to clean text
 const cleanText = (text) => {
@@ -11,6 +12,73 @@ const cleanText = (text) => {
     .replace(/\r?\n[\s\r\n]*/g, '\n')     // normalize line breaks
     .trim();
 };
+// Helper to parse Gemini response
+const parseQuestionsFromGemini = (text) => {
+  const questions = [];
+  const lines = text.split('\n');
+
+  let currentQuestion = null;
+
+  lines.forEach((line) => {
+    if (line.startsWith('Q')) {
+      if (currentQuestion) {
+        questions.push(currentQuestion);
+      }
+      currentQuestion = {
+        question: line.replace(/^Q\d*:\s*/, '').trim(),
+        answer: ''
+      };
+    } else if (line.startsWith('Answer:')) {
+      currentQuestion.answer += line.replace('Answer:', '').trim() + ' ';
+    } else if (currentQuestion) {
+      currentQuestion.answer += line.trim() + ' ';
+    }
+  });
+
+  if (currentQuestion) {
+    currentQuestion.answer = cleanText(currentQuestion.answer);
+    questions.push(currentQuestion);
+   
+  }
+
+  return questions;
+};
+
+// Main function to fetch AI-generated questions
+export const fetchAIQuestions = async () => {
+  try {
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      {
+        contents: [{
+          parts: [{
+            text: `Generate 5 theoretical interview questions related to Software Development. Which checks interpersonal skill, problem solveing skills. Each question should have:
+            - A theoretical question (no code).
+            - A detailed explanation as the answer.
+
+            Format:
+            Q1: What is [skill]?
+            Answer: [Provide a detailed theoretical explanation of the concept.]
+
+            Make the questions focused on theoretical concepts of the given skill. 
+             Keep each answer within 5 lines maximum.`
+            
+          }]
+        }]
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    const resultText = response.data.candidates[0].content.parts[0].text;
+    const formattedQuestions = parseQuestionsFromGemini(resultText);
+
+    return formattedQuestions;
+  } catch (error) {
+    console.error('Error fetching theoretical questions:', error);
+    throw error;
+  }
+};
+
 
 // Function to fetch questions based on skill
 export const fetchQuestionsFromGemini = async (skill) => {
