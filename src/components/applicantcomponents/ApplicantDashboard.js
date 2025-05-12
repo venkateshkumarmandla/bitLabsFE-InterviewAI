@@ -538,7 +538,7 @@ const ApplicantDashboard = () => {
                               <h2 className="heading1">Mock interview by AI
                               </h2>
                               <div className="" style={{ fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
-                                Check your performance in your skill set by taking AI based mock tests
+                                Upgrade your performance in your skill set by taking AI based mock tests daily. You are just one click away.
                               </div>
                             </div>
                             <div className="resumecard-button">

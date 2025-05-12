@@ -12,8 +12,8 @@ import axios from 'axios';
 
      export const apiUrl = 'https://g23jza8mtp.ap-south-1.awsapprunner.com';
      
-    //  Gemini api
-     export  const API_KEY = 'AIzaSyAsYnprqHafTwJbq8J2QbsbiK1FyR93spk';
+
+    //  export const apiUrl = 'http://192.168.203.13:8081';
 
 
 const ApplicantAPIService = {

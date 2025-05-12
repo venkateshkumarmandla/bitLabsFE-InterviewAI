@@ -1,189 +1,173 @@
 import axios from 'axios';
-import { API_KEY } from '../../services/ApplicantAPIService';
 
 
-
-// Helper function to clean text
-const cleanText = (text) => {
-  return text
-    .replace(/[*_~]+/g, '')               // remove *, _, ~
-    .replace(/\u200B/g, '')               // remove zero-width space
-    .replace(/[^\x00-\x7F]+/g, '')        // remove non-ASCII characters
-    .replace(/\r?\n[\s\r\n]*/g, '\n')     // normalize line breaks
-    .trim();
-};
-// Helper to parse Gemini response
-const parseQuestionsFromGemini = (text) => {
-  const questions = [];
-  const lines = text.split('\n');
-
-  let currentQuestion = null;
-
-  lines.forEach((line) => {
-    if (line.startsWith('Q')) {
-      if (currentQuestion) {
-        questions.push(currentQuestion);
-      }
-      currentQuestion = {
-        question: line.replace(/^Q\d*:\s*/, '').trim(),
-        answer: ''
-      };
-    } else if (line.startsWith('Answer:')) {
-      currentQuestion.answer += line.replace('Answer:', '').trim() + ' ';
-    } else if (currentQuestion) {
-      currentQuestion.answer += line.trim() + ' ';
-    }
-  });
-
-  if (currentQuestion) {
-    currentQuestion.answer = cleanText(currentQuestion.answer);
-    questions.push(currentQuestion);
-   
-  }
-
-  return questions;
-};
 
 // Main function to fetch AI-generated questions
-export const fetchAIQuestions = async () => {
+export const fetchAIQuestions = async (skill, API_KEY) => {
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      'https://openrouter.ai/api/v1/chat/completions',
       {
-        contents: [{
-          parts: [{
-            text: `Generate 5 theoretical interview questions related to Software Development. Which checks interpersonal skill, problem solveing skills. Each question should have:
-            - A theoretical question (no code).
-            - A detailed explanation as the answer.
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        messages: [
+          {
+            role: 'user',
+            content: `Generate 3 theoretical interview questions related to Software development. Each question should have:
+- A theoretical question (no code).
+- Questions should be in a way that analysis the problem soving skills and technical skills.
 
-            Format:
-            Q1: What is [skill]?
-            Answer: [Provide a detailed theoretical explanation of the concept.]
+Format:
+Q1: What is [skill]?
+Answer: [Detailed theoretical explanation.]
 
-            Make the questions focused on theoretical concepts of the given skill. 
-             Keep each answer within 5 lines maximum.`
-            
-          }]
-        }]
+Ensure the questions are relevant and purely conceptual.`,
+          },
+        ],
       },
-      { headers: { 'Content-Type': 'application/json' } }
+      {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
     );
 
-    const resultText = response.data.candidates[0].content.parts[0].text;
-    const formattedQuestions = parseQuestionsFromGemini(resultText);
+    const resultText = response.data.choices[0].message.content;
 
-    return formattedQuestions;
+    // Extract each Q&A pair using RegEx
+    const qaPairs = resultText.split(/Q\d+:/).slice(1).map(block => {
+      const [questionPart, ...answerParts] = block.split('Answer:');
+      return {
+        question: questionPart.trim(),
+        answer: answerParts.join('Answer:').trim(),
+      };
+    });
+
+    return qaPairs;
   } catch (error) {
-    console.error('Error fetching theoretical questions:', error);
+    console.error('Error fetching theoretical questions from LLaMA:', error?.response?.data || error.message);
     throw error;
   }
 };
 
 
 // Function to fetch questions based on skill
-export const fetchQuestionsFromGemini = async (skill) => {
+export const fetchQuestions = async (skill, API_KEY) => {
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      'https://openrouter.ai/api/v1/chat/completions',
       {
-        contents: [{
-          parts: [{
-            text: `Generate 3 theoretical interview questions related to ${skill}. Each question should have:
-            - A theoretical question (no code).
-            - A detailed explanation as the answer.
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        messages: [
+          {
+            role: 'user',
+            content: `Generate 3 theoretical interview questions related to ${skill}. Each question should have:
+- A theoretical question (no code).
+- Questions should be in a way that analysis the problem soving skills and technical skills.
 
-            Format:
-            Q1: What is [skill]?
-            Answer: [Provide a detailed theoretical explanation of the concept.]
+Format:
+Q1: What is [skill]?
+Answer: [Detailed theoretical explanation.]
 
-            Make the questions focused on theoretical concepts of the given skill.`
-          }]
-        }]
+Ensure the questions are relevant and purely conceptual.`,
+          },
+        ],
       },
-      { headers: { 'Content-Type': 'application/json' } }
+      {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
     );
 
-    // Parse the JSON string inside the response
-    const resultText = response.data.candidates[0].content.parts[0].text;
-    const questions = resultText.split('\n').filter(line => line.startsWith('Q'));
+    const resultText = response.data.choices[0].message.content;
 
-    // Structure the questions and return them
-    const formattedQuestions = questions.map((question) => {
-      const parts = question.split('Answer:');
-      const questionText = parts[0].replace('Q:', '').trim();
-      const answerText = parts[1]?.trim();
-
+    // Extract each Q&A pair using RegEx
+    const qaPairs = resultText.split(/Q\d+:/).slice(1).map(block => {
+      const [questionPart, ...answerParts] = block.split('Answer:');
       return {
-        question: questionText,
-        answer: answerText
+        question: questionPart.trim(),
+        answer: answerParts.join('Answer:').trim(),
       };
     });
 
-    return formattedQuestions;
+    return qaPairs;
   } catch (error) {
-    console.error('Error fetching theoretical questions:', error);
+    console.error('Error fetching theoretical questions from LLaMA:', error?.response?.data || error.message);
     throw error;
   }
 };
 
-// Function to analyze answers with feedback, grammar check, and scoring
-export const analyzeAnswers = async (answers) => {
+
+
+function extractScoreFromAnalysis(analysisText) {
+  // Updated regex to match "Average Score: 8.5/10"
+  const regex = /Average Score:\s*(\d+(\.\d+)?)/;
+
+  const match = analysisText.match(regex);
+
+  if (match) {
+    return parseFloat(match[1]); // Convert matched number to float
+  } else {
+    return null; // Return null if no match
+  }
+}
+
+
+export const analyzeAnswers = async (answers, API_KEY) => {
   const formatted = answers
     .map((ans, i) => `Q${i + 1}: ${ans.question}\nA${i + 1}: ${ans.answer}`)
     .join('\n\n');
-  
-  // Send answers to Gemini for analysis
+
+  const prompt = `You are an expert reviewer. Analyze the following theoretical answers. For each answer:
+- Correct any grammar issues.
+- Evaluate the programming knowledge and conceptual understanding.
+- Give individual feedback.
+At the end, provide an average score (out of 10) across all answers with the phrase: "Average Score is: <score>".
+
+${formatted}`;
+
   const response = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+    'https://openrouter.ai/api/v1/chat/completions',
     {
-      contents: [{
-        parts: [{
-          text: `Analyze the following theoretical answers and provide feedback. Include grammar mistakes, programming understanding, and score.\n\n${formatted}`
-        }]
-      }]
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
     },
-    { headers: { 'Content-Type': 'application/json' } }
+    {
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
   );
 
-  const analysisText = cleanText(response.data.candidates[0]?.content?.parts[0]?.text || "No analysis available.");
+  const analysisText =
+    response.data?.choices?.[0]?.message?.content || 'No analysis available.';
 
-  // Now add more checks (for grammar, programming, and score)
+  // Optionally process or extract average score
   const analysis = await performAdditionalAnalysis(analysisText);
-
+  console.log(analysis.overallAverageScore);
   return analysis;
 };
 
+
+
 // Additional analysis for grammar mistakes, understanding, and scoring
 const performAdditionalAnalysis = async (analysisText) => {
-  const grammarMistakes = analyzeGrammarMistakes(analysisText);
-  
-  const programmingUnderstandingScore = assessProgrammingUnderstanding(analysisText);
-  
-  const totalScore = calculateScore(grammarMistakes, programmingUnderstandingScore);
+ 
+   const overallAverageScore = extractScoreFromAnalysis(analysisText);
+console.log(overallAverageScore);
 
   return {
     analysisText,
-    grammarMistakes,
-    programmingUnderstandingScore,
-    totalScore
+overallAverageScore
   };
 };
 
-const analyzeGrammarMistakes = (text) => {
-  const grammarIndicators = ['grammar', 'mistake', 'error', 'incorrect'];
-  const mistakesFound = grammarIndicators.filter(indicator => text.toLowerCase().includes(indicator));
-  return mistakesFound.length;
-};
 
-const assessProgrammingUnderstanding = (text) => {
-  const programmingKeywords = ['algorithm', 'data structure', 'complexity', 'syntax', 'logic'];
-  const foundKeywords = programmingKeywords.filter(keyword => text.toLowerCase().includes(keyword));
-  return foundKeywords.length;
-};
-
-const calculateScore = (grammarMistakes, programmingUnderstandingScore) => {
-  const grammarPenalty = grammarMistakes * 0.5;
-  const understandingScore = programmingUnderstandingScore * 1;
-  const totalScore = Math.max(0, 10 - grammarPenalty + understandingScore); 
-  return totalScore.toFixed(2);
-};
