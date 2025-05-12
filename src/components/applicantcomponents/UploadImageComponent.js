@@ -38,6 +38,13 @@ const UploadImageComponent = ({ id}) => {
   };
 
   const uploadPhoto = async () => {
+
+
+    if (!photoFile) {
+    addSnackbar({ message: 'Please select a photo before uploading.', type: 'error' });
+    return;
+  }
+
     try {
       const jwtToken = localStorage.getItem('jwtToken');
       const formData = new FormData();
