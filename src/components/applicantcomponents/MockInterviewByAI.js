@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useUserContext } from '../common/UserProvider';
 import axios from 'axios';
 import { apiUrl } from '../../services/ApplicantAPIService';
-import { fetchQuestions, analyzeAnswers, fetchAIQuestions, overallScore } from './geminiUtils';
+import { fetchQuestions, analyzeAnswers } from './geminiUtils';
 import { Link } from "react-router-dom";
 import Taketest from '../../images/user/avatar/Taketest.png';
+import {ClipLoader} from "react-spinners"
 const MockInterviewByAi = () => {
   const { user } = useUserContext();
   const userId = user.id;
@@ -18,7 +19,8 @@ const MockInterviewByAi = () => {
   const [isWideScreen, setIsWideScreen] = useState(false);
   const [homePage, setHomePage] = useState(true);
   const [AIQuestions, setAIQuestions] = useState([]);
-  const [questionsShown, setQuestionsShown] = useState(false);
+  const [questionsShown, setQuestionsShown] = useState(true);
+  const [analysisShown, setAnalysisShown] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const linkStyle = {
@@ -26,7 +28,7 @@ const MockInterviewByAi = () => {
     display: 'inline-block',
   };
   // openRouter llama key 
-  const API_KEY = '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';
+  const API_KEY = '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';
 
   //  Gemini api
   // const API_KEY = 'AIzaSyAsYnprqHafTwJbq8J2QbsbiK1FyR93spk';
@@ -95,6 +97,7 @@ const MockInterviewByAi = () => {
   // }, [overallScore]);
 
   const handleSubmitAll = async () => {
+    setLoading(true);
     const updatedAnswers = [...answers];
     updatedAnswers[currentIndex] = {
       question: questions[currentIndex].question,
@@ -103,7 +106,11 @@ const MockInterviewByAi = () => {
     setAnswers(updatedAnswers);
     const result = await analyzeAnswers(updatedAnswers, API_KEY);
     setAnalysis(result);
-
+    if(result) setLoading(false);
+    setInputValue('');
+    setQuestionsShown(false);
+    setAnalysisShown(true);
+    setQuestions([]);
   };
 
 
@@ -124,7 +131,7 @@ const MockInterviewByAi = () => {
         const names2 = data.applicantSkillBadges.map(skills => skills.skillBadge.name);
         const combined = [...names, ...names2].sort();
         setSkills(combined);
-        if(skills)
+        if (skills)
           setLoading(false);
       } catch (error) {
         console.error("Failed to fetch skill badges:", error);
@@ -134,32 +141,37 @@ const MockInterviewByAi = () => {
   }, [userId]);
 
   const handleSkillFetch = async (skill) => {
-    setQuestionsShown(true);
+    setLoading(true);
     setSelectedSkill(skill);
     try {
       const result = await fetchQuestions(skill, API_KEY);
+      setHomePage(false);
       setQuestions(result);
+      setLoading(false);
     } catch (err) {
       console.error("Failed to load questions", err);
       setQuestions([]);
     }
   };
 
-  const handleAiQuestions = async () => {
-    setHomePage(false);
-    try {
-      const result = await fetchAIQuestions(API_KEY);
-      setAIQuestions(result);
-    }
-    catch (err) {
-      console.error("Failed to fetch", err);
-    }
-  }
+  // const handleAiQuestions = async () => {
+  //   setHomePage(false);
+  //   try {
+  //     const result = await fetchAIQuestions(API_KEY);
+  //     setAIQuestions(result);
+  //   }
+  //   catch (err) {
+  //     console.error("Failed to fetch", err);
+  //   }
+  // }
 
 
   const handleBackButton = () => {
     setHomePage(true);
+    setQuestionsShown(true);
+    setAnalysisShown(false);
   }
+
 
   return (
     // <div>
@@ -295,84 +307,138 @@ const MockInterviewByAi = () => {
 
 
     <>
-     {loading ? null : (
-      <div className="dashboard__content">
-        <div className="row mr-0 ml-10">
-          <div className="col-lg-12 col-md-12">
-
-            {homePage && (
-              <>
+      {loading ?  <div className="spinner-container">
+        <ClipLoader color="#0d6efd" loading={loading} size={50} />
+      </div> : (
+        <div className="dashboard__content">
+          <div className="row mr-0 ml-10">
+            <div className="col-lg-12 col-md-12">
               {/* //  page title  */}
-  <div className="page-title-dashboard">
+              <div className="page-title-dashboard">
                 <div className="title-dashboard"></div>
                 <div className="userName-title">
                   Mock Interview By AI
                 </div>
               </div>
-
-{/* AI question bank  */}
-<div className="col-lg-12 col-md-12">
-              <div className="row dash-count">
-<div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
-                <div className="card" style={{ cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
-                  <div className={!isWideScreen ? 'resumecard' : ''}>
-                    <div className="resumecard-content">
-                      <div className="resumecard-text">
-                        <div className="resumecard-heading">
-                          <h2 className="heading1">AI questions</h2>
-                          <div className="" style={{ fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
-                            Daily preparation is key to success. Start your preparation with AI interview questions today.
-                          </div>
-                        </div>
-                        <div className="resumecard-button">
-                          <Link
-                            className="button-link1"
-                            style={linkStyle}
-                            onClick={handleAiQuestions}
-
-                          >
-                            <span className="button button-custom" style={spanStyle}>prepare</span>
-                          </Link>
-                        </div>
-                      </div>
-
-                      <div className="resumecard-icon" style={{ marginLeft: 'auto' }}>
-                        <img
-                          src={Taketest}
-                          alt="Taketest"
-                          style={{ width: '160px', height: 'auto', objectFit: 'contain', marginTop: '10px' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div className="col-lg-12 col-md-12">
+                <div className="row dash-count">
+                  {homePage && (
+                    <>
 
 
-{/* skill fetch  */}
-              <div className="row">
-                      {skills.map((skill, index) => (
-                        <div key={index} className="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
-                          <div className="card" style={{ cursor: "pointer" }} onClick={() => handleSkillFetch(skill)}>
-                            <div className="content">
-                              <span className="title-count">Skill</span>
-                              <h4>{skill}</h4>
+                      {/* AI question bank  */}
+                      <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
+
+                        <div className="card" style={{ cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
+                          <div className={!isWideScreen ? 'resumecard' : ''}>
+                            <div className="resumecard-content">
+                              <div className="resumecard-text">
+                                <div className="resumecard-heading">
+                                  <h2 className="heading1">AI questions</h2>
+                                  <div className="" style={{ fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
+                                    Daily preparation is key to success. Start your preparation with AI interview questions today.
+                                  </div>
+                                </div>
+                                <div className="resumecard-button">
+                                  <Link
+                                    className="button-link1"
+                                    style={linkStyle}
+                                  // onClick={handleAiQuestions}
+
+                                  >
+                                    <span className="button button-custom" style={spanStyle}>prepare</span>
+                                  </Link>
+                                </div>
+                              </div>
+
+                              <div className="resumecard-icon" style={{ marginLeft: 'auto' }}>
+                                <img
+                                  src={Taketest}
+                                  alt="Taketest"
+                                  style={{ width: '160px', height: 'auto', objectFit: 'contain', marginTop: '10px' }}
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                    </div>
-                    </div>
-            </>
-            
+                      </div>
 
-)}
 
+                      {/* skill fetch  */}
+                      <div className="row">
+                        {skills.map((skill, index) => (
+                          <div key={index} className="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                            <div className="card" style={{ cursor: "pointer" }} onClick={() => handleSkillFetch(skill)}>
+                              <div className="content">
+                                <span className="title-count">Skill</span>
+                                <h4>{skill}</h4>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+
+                    </>
+                  )}
+                  {!homePage && questionsShown && (
+                    <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
+                      {/* Questions generated by AI  */}
+
+                      <div className="card" style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
+
+                        <div style={{ marginBottom: '30px' }}>
+                          <p>{questions[currentIndex].question}</p>
+                          <textarea
+                            rows={4}
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            style={{ width: '100%', padding: '10px', borderRadius: '6px' }}
+                            placeholder="Type your answer here..."
+                          />
+                          <br />
+                          <div className="resumecard-button">
+                            <Link className="button-link1" style={linkStyle}
+                              onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}>
+                              <span className="button button-custom" style={spanStyle}>
+                                {currentIndex === questions.length - 1 ? 'Submit All' : 'Next'}
+                              </span>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+                      {!homePage && analysisShown && !questionsShown && (
+                  <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
+                    {/* analysis reposrt  */}
+
+                    <div className="card" style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
+                        <div style={{ marginTop: '30px', whiteSpace: 'pre-wrap' }}>
+                          <h4>Analysis Report</h4>
+                          <p>{analysis.analysisText}</p>
+
+                        </div>
+                                                        <div className="resumecard-button">
+                                  <Link
+                                    className="button-link1"
+                                    style={linkStyle}
+                                  onClick={handleBackButton}
+
+                                  >
+                                    <span className="button button-custom" style={spanStyle}>Back</span>
+                                  </Link>
+                                </div>
+                  </div>
+
+                </div>
+                      )}</div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      </div>
-     )}
+      )}
     </>
 
   );
