@@ -10,7 +10,7 @@ export const fetchQuestions = async (skill, API_KEY) => {
         messages: [
           {
             role: 'user',
-            content: `Generate 2 code-based conceptual questions related to the topic "${skill}". The questions should be relevant to real-world development scenarios using the language or technology mentioned.
+            content: `Generate strictly 2 code-based questions related to the topic "${skill}". The questions should be relevant to real-world development scenarios using the language or technology mentioned.
             Each question should include:
 - A clear explanation of a real-time use case
 - A concise question prompt
@@ -62,21 +62,6 @@ Note: Give only use cases and avoid test cases for the programming languages whi
 };
 
 
-
-function extractScoreFromAnalysis(analysisText) {
-  // Updated regex to match "Average Score: 8.5/10"
-  const regex = /Average Score:\s*(\d+(\.\d+)?)/;
-
-  const match = analysisText.match(regex);
-
-  if (match) {
-    return parseFloat(match[1]); // Convert matched number to float
-  } else {
-    return null; // Return null if no match
-  }
-}
-
-
 export const analyzeAnswers = async (answers, API_KEY) => {
   const formatted = answers
     .map((ans, i) => `Q${i + 1}: ${ans.question}\nA${i + 1}: ${ans.answer}`)
@@ -86,6 +71,7 @@ export const analyzeAnswers = async (answers, API_KEY) => {
 
 - Evaluate the programming knowledge and conceptual understanding.
 - Give individual feedback.
+- If you find null for all the answers then give 0
 At the end, provide an average score (out of 10) across all answers with the phrase: "Average Score is: <score>".
 
 ${formatted}`;
@@ -112,24 +98,8 @@ ${formatted}`;
   const analysisText =
     response.data?.choices?.[0]?.message?.content || 'No analysis available.';
 
-  // Optionally process or extract average score
-  const analysis = await performAdditionalAnalysis(analysisText);
-  console.log(analysis.overallAverageScore);
-  return analysis;
+  return analysisText;
 };
 
-
-
-// Additional analysis for grammar mistakes, understanding, and scoring
-const performAdditionalAnalysis = async (analysisText) => {
- 
-   const overallAverageScore = extractScoreFromAnalysis(analysisText);
-console.log(overallAverageScore);
-
-  return {
-    analysisText,
-overallAverageScore
-  };
-};
 
 
