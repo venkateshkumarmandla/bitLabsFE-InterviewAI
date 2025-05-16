@@ -1690,14 +1690,193 @@
 
 
 
+// import React, { useState, useEffect, useRef } from 'react';
+// import ReactPlayer from 'react-player';
+// import axios from 'axios';
+// import { apiUrl } from '../../services/ApplicantAPIService';
+
+// const VerifiedVideos = () => {
+//   const [videoList, setVideoList] = useState([]);
+//   const [playingIndex, setPlayingIndex] = useState(null);
+//   const [currentPage, setCurrentPage] = useState(0);
+
+//   const scrollContainerRef = useRef(null);
+//   const VIDEOS_PER_PAGE = 3;
+
+//   useEffect(() => {
+//     const fetchVideos = async () => {
+//       try {
+//         const jwtToken = localStorage.getItem('jwtToken');
+//         const res = await axios.get(`${apiUrl}/file/allVideos`, {
+//           headers: {
+//             Authorization: `Bearer ${jwtToken}`,
+//           },
+//         });
+//         if (res.data.length > 0) setVideoList(res.data);
+//       } catch (err) {
+//         console.error('Error fetching videos:', err);
+//       }
+//     };
+
+//     fetchVideos();
+//   }, []);
+
+//   const totalPages = Math.ceil(videoList.length / VIDEOS_PER_PAGE);
+
+//   const scrollToPage = (pageIndex) => {
+//     const container = scrollContainerRef.current;
+//     if (container) {
+//       const scrollAmount = pageIndex * (320 * VIDEOS_PER_PAGE + 20 * (VIDEOS_PER_PAGE - 1));
+//       container.scrollTo({ left: scrollAmount, behavior: 'smooth' });
+//       setCurrentPage(pageIndex);
+//     }
+//   };
+
+//   const goToNext = () => {
+//     if (currentPage < totalPages - 1) scrollToPage(currentPage + 1);
+//   };
+
+//   const goToPrev = () => {
+//     if (currentPage > 0) scrollToPage(currentPage - 1);
+//   };
+
+//   return (
+//     <div style={{
+//       maxWidth: '1200px',
+//       margin: '0 auto',
+//       padding: '40px 20px',
+//       fontFamily: 'sans-serif',
+//       position: 'relative',
+//     }}>
+//       <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>
+//         Check Our <span style={{ color: 'orange' }}>Reviews</span>
+//       </h2>
+
+//       <div style={{ position: 'relative' }}>
+//         {/* Left Arrow */}
+//         {currentPage > 0 && (
+//           <button
+//             onClick={goToPrev}
+//             style={{
+//               position: 'absolute',
+//               left: '-20px',
+//               top: '50%',
+//               transform: 'translateY(-50%)',
+//               backgroundColor: 'orange',
+//               color: 'white',
+//               border: 'none',
+//               borderRadius: '50%',
+//               width: '40px',
+//               height: '40px',
+//               cursor: 'pointer',
+//               zIndex: 1,
+//               fontSize: '20px',
+//             }}
+//           >
+//             ⬅
+//           </button>
+//         )}
+
+//         {/* Right Arrow */}
+//         {currentPage < totalPages - 1 && (
+//           <button
+//             onClick={goToNext}
+//             style={{
+//               position: 'absolute',
+//               right: '-20px',
+//               top: '50%',
+//               transform: 'translateY(-50%)',
+//               backgroundColor: 'orange',
+//               color: 'white',
+//               border: 'none',
+//               borderRadius: '50%',
+//               width: '40px',
+//               height: '40px',
+//               cursor: 'pointer',
+//               zIndex: 1,
+//               fontSize: '20px',
+//             }}
+//           >
+//             ➡
+//           </button>
+//         )}
+
+//         {/* Video List */}
+//         <div
+//           ref={scrollContainerRef}
+//           style={{
+//             display: 'flex',
+//             overflowX: 'hidden',
+//             gap: '20px',
+//             scrollBehavior: 'smooth',
+//             paddingBottom: '10px',
+//           }}
+//         >
+//           {videoList.map((videoUrl, index) => (
+//             <div key={index} style={{
+//               minWidth: '300px',
+//               flex: '0 0 auto',
+//               textAlign: 'center'
+//             }}>
+//               <div style={{
+//                 borderRadius: '10px',
+//                 overflow: 'hidden',
+//                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+//                 position: 'relative'
+//               }}>
+//                 <ReactPlayer
+//                   url={videoUrl}
+//                   playing={playingIndex === index}
+//                   controls
+//                   muted
+//                   width="100%"
+//                   height="200px"
+//                   light={true}
+//                   onClickPreview={() => setPlayingIndex(index)}
+//                   onPlay={() => setPlayingIndex(index)}
+//                 />
+//               </div>
+//               <p style={{ marginTop: '10px', fontWeight: 'bold' }}>
+//                 {`Review ${index + 1}`}
+//               </p>
+//             </div>
+//           ))}
+//         </div>
+
+//         {/* Dot indicators below */}
+//         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', gap: '10px' }}>
+//           {Array.from({ length: totalPages }).map((_, i) => (
+//             <span
+//               key={i}
+//               onClick={() => scrollToPage(i)}
+//               style={{
+//                 width: '12px',
+//                 height: '12px',
+//                 borderRadius: '50%',
+//                 backgroundColor: i === currentPage ? 'orange' : '#ccc',
+//                 cursor: 'pointer',
+//                 display: 'inline-block',
+//               }}
+//             />
+//           ))}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default VerifiedVideos;
+
+
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
-import ReactPlayer from 'react-player';
 import axios from 'axios';
 import { apiUrl } from '../../services/ApplicantAPIService';
 
 const VerifiedVideos = () => {
   const [videoList, setVideoList] = useState([]);
-  const [playingIndex, setPlayingIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
 
   const scrollContainerRef = useRef(null);
@@ -1824,17 +2003,16 @@ const VerifiedVideos = () => {
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 position: 'relative'
               }}>
-                <ReactPlayer
-                  url={videoUrl}
-                  playing={playingIndex === index}
-                  controls
-                  muted
+                <video
                   width="100%"
-                  height="200px"
-                  light={true}
-                  onClickPreview={() => setPlayingIndex(index)}
-                  onPlay={() => setPlayingIndex(index)}
-                />
+                  height="200"
+                  controls
+                  poster="https://via.placeholder.com/300x200.png?text=Video+Preview"
+                  style={{ borderRadius: '10px', width: '100%', height: '200px', objectFit: 'cover' }}
+                >
+                  <source src={videoUrl} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
               </div>
               <p style={{ marginTop: '10px', fontWeight: 'bold' }}>
                 {`Review ${index + 1}`}
@@ -1843,7 +2021,7 @@ const VerifiedVideos = () => {
           ))}
         </div>
 
-        {/* Dot indicators below */}
+        {/* Dot indicators */}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', gap: '10px' }}>
           {Array.from({ length: totalPages }).map((_, i) => (
             <span
