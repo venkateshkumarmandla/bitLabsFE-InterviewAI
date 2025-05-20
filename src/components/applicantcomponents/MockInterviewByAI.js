@@ -137,6 +137,10 @@ const MockInterviewByAi = () => {
     fetchSkillBadges();
   }, [userId]);
 
+  const handleCodingQuestions = () => {
+ window.location.href = "https://www.hackerrank.com/bitlabs-1747748513";
+  }
+
   const handleSkillFetch = async (skill) => {
     setLoading(true);
     setSelectedSkill(skill);
@@ -194,23 +198,23 @@ const MockInterviewByAi = () => {
 
 
                         {/* AI question bank  */}
-                        <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
 
+                        <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
                           <div className="card" style={{ cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
                             <div className={!isWideScreen ? 'resumecard' : ''}>
                               <div className="resumecard-content">
                                 <div className="resumecard-text">
                                   <div className="resumecard-heading">
-                                    <h2 className="heading1">AI questions</h2>
+                                    <h2 className="heading1">Coding questions</h2>
                                     <div className="" style={{ fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
-                                      Daily preparation is key to success. Start your preparation with AI interview questions today.
+                                      Daily preparation is key to success. Start your preparation with Coding questions today.
                                     </div>
                                   </div>
                                   <div className="resumecard-button">
                                     <Link
                                       className="button-link1"
                                       style={linkStyle}
-                                    // onClick={handleAiQuestions}
+                                    onClick={handleCodingQuestions}
 
                                     >
                                       <span className="button button-custom" style={spanStyle}>prepare</span>
