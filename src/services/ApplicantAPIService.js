@@ -20,7 +20,6 @@ export const API_KEY = 'AIzaSyAsYnprqHafTwJbq8J2QbsbiK1FyR93spk';
     export const apiUrl = process.env.REACT_APP_API_URL;
 
 
-
 const ApplicantAPIService = {
 }
 export default ApplicantAPIService;

@@ -6,6 +6,12 @@
 .pnp.js
 # /src/services/ApplicantAPIService.js
 
+
+ 
+# api key
+/src/apikey.js
+ 
+
 # testing
 /coverage
 
@@ -24,3 +30,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# api key
+/src/apikey.js
