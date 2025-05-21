@@ -16,6 +16,7 @@ import ResumeBuilder from './ResumeBuilder';
 import SmartPhone from "../../images/dashboard/mobilebanners/smartphone.png"
 import appStoreIcon from "../../images/dashboard/mobilebanners/appstoreicon.png";
 import playStore from "../../images/dashboard/mobilebanners/playstore.png";
+import Modal from "./AiModal"
 
 
 
@@ -35,6 +36,15 @@ const ApplicantDashboard = () => {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
   const [isWideScreen, setIsWideScreen] = useState(false);
+  const [popUp, setPopUp] = useState(false);
+
+  const handlePopUp = () => {
+    setPopUp(true);
+  }
+
+  const handleClosePopUp = () => {
+    setPopUp(false);
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -543,11 +553,12 @@ const ApplicantDashboard = () => {
                             </div>
                             <div className="resumecard-button">
                               <Link
-                                to="/mock-interview-by-ai"
+                                // to="/mock-interview-by-ai"
                                 className="button-link1"
                                 style={linkStyle}
                                 onMouseEnter={() => setIsHovered(true)}
                                 onMouseLeave={() => setIsHovered(false)}
+                                onClick={handlePopUp}
                               >
                                 <span className="button button-custom" style={spanStyle}>Start</span>
                               </Link>
@@ -566,6 +577,10 @@ const ApplicantDashboard = () => {
                     </div>
                   </div>
                 )}
+                {popUp && (
+                  <Modal onClose={handleClosePopUp}/>
+                )
+                }
               </div>
             </div>
           </div>
