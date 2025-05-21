@@ -137,83 +137,83 @@
 
 
 
-// import React, { useRef, useState } from 'react';
-// import ReactPlayer from 'react-player';
+import React, { useRef, useState } from 'react';
+import ReactPlayer from 'react-player';
 
-// const VerifiedVideos = () => {
-//   const playerRef = useRef(null);
-//   const [playing, setPlaying] = useState(true);
-//   const [muted, setMuted] = useState(true);
-//   const [volume, setVolume] = useState(0.5);
-//   const [playedSeconds, setPlayedSeconds] = useState(0);
-//   const [duration, setDuration] = useState(0);
+const VerifiedVideos = () => {
+  const playerRef = useRef(null);
+  const [playing, setPlaying] = useState(true);
+  const [muted, setMuted] = useState(true);
+  const [volume, setVolume] = useState(0.5);
+  const [playedSeconds, setPlayedSeconds] = useState(0);
+  const [duration, setDuration] = useState(0);
 
-//   // Format seconds to mm:ss
-//   const formatTime = (seconds) => {
-//     const mins = Math.floor(seconds / 60);
-//     const secs = Math.floor(seconds % 60);
-//     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-//   };
+  // Format seconds to mm:ss
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
-//   return (
-//     <div style={{ maxWidth: '800px', margin: 'auto' }}>
-//       <ReactPlayer
-//         ref={playerRef}
-//         url="https://www.youtube.com/watch?v=E8lXC2mR6-k"
-//         playing={playing}
-//         muted={muted}
-//         volume={volume}
-//         controls={false}
-//         width="100%"
-//         height="450px"
-//         onProgress={({ playedSeconds }) => setPlayedSeconds(playedSeconds)}
-//         onDuration={(dur) => setDuration(dur)}
-//         config={{
-//           youtube: {
-//             playerVars: {
-//               autoplay: 1,
-//               mute: 1,
-//               controls: 0,
-//               modestbranding: 1,
-//               rel: 0,
-//               showinfo: 0,
-//               iv_load_policy: 3,
-//             },
-//           },
-//         }}
-//       />
+  return (
+    <div style={{ maxWidth: '800px', margin: 'auto' }}>
+      <ReactPlayer
+        ref={playerRef}
+        url="https://www.youtube.com/watch?v=E8lXC2mR6-k"
+        playing={playing}
+        muted={muted}
+        volume={volume}
+        controls={false}
+        width="100%"
+        height="450px"
+        onProgress={({ playedSeconds }) => setPlayedSeconds(playedSeconds)}
+        onDuration={(dur) => setDuration(dur)}
+        config={{
+          youtube: {
+            playerVars: {
+              autoplay: 1,
+              mute: 1,
+              controls: 0,
+              modestbranding: 1,
+              rel: 0,
+              showinfo: 0,
+              iv_load_policy: 3,
+            },
+          },
+        }}
+      />
 
-//       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '15px' }}>
-//         <button onClick={() => setPlaying(!playing)}>
-//           {playing ? 'Pause' : 'Play'}
-//         </button>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '15px' }}>
+        <button onClick={() => setPlaying(!playing)}>
+          {playing ? 'Pause' : 'Play'}
+        </button>
 
-//         <button onClick={() => setMuted(!muted)}>
-//           {muted ? 'Unmute' : 'Mute'}
-//         </button>
+        <button onClick={() => setMuted(!muted)}>
+          {muted ? 'Unmute' : 'Mute'}
+        </button>
 
-//         <label>
-//           Volume:
-//           <input
-//             type="range"
-//             min={0}
-//             max={1}
-//             step={0.1}
-//             value={volume}
-//             onChange={(e) => setVolume(parseFloat(e.target.value))}
-//             style={{ marginLeft: '5px' }}
-//           />
-//         </label>
+        <label>
+          Volume:
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.1}
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            style={{ marginLeft: '5px' }}
+          />
+        </label>
 
-//         <span>
-//           {formatTime(playedSeconds)} / {formatTime(duration)}
-//         </span>
-//       </div>
-//     </div>
-//   );
-// };
+        <span>
+          {formatTime(playedSeconds)} / {formatTime(duration)}
+        </span>
+      </div>
+    </div>
+  );
+};
 
-// export default VerifiedVideos;
+export default VerifiedVideos;
 
 
 
@@ -1690,179 +1690,417 @@
 
 
 
-import React, { useState, useEffect, useRef } from 'react';
-import ReactPlayer from 'react-player';
-import axios from 'axios';
-import { apiUrl } from '../../services/ApplicantAPIService';
+// import React, { useState, useEffect, useRef } from 'react';
+// import ReactPlayer from 'react-player';
+// import axios from 'axios';
+// import { apiUrl } from '../../services/ApplicantAPIService';
 
-const VerifiedVideos = () => {
-  const [videoList, setVideoList] = useState([]);
-  const [playingIndex, setPlayingIndex] = useState(null);
-  const [currentPage, setCurrentPage] = useState(0);
+// const VerifiedVideos = () => {
+//   const [videoList, setVideoList] = useState([]);
+//   const [playingIndex, setPlayingIndex] = useState(null);
+//   const [currentPage, setCurrentPage] = useState(0);
 
-  const scrollContainerRef = useRef(null);
-  const VIDEOS_PER_PAGE = 3;
+//   const scrollContainerRef = useRef(null);
+//   const VIDEOS_PER_PAGE = 3;
 
-  useEffect(() => {
-    const fetchVideos = async () => {
-      try {
-        const jwtToken = localStorage.getItem('jwtToken');
-        const res = await axios.get(`${apiUrl}/file/allVideos`, {
-          headers: {
-            Authorization: `Bearer ${jwtToken}`,
-          },
-        });
-        if (res.data.length > 0) setVideoList(res.data);
-      } catch (err) {
-        console.error('Error fetching videos:', err);
-      }
-    };
+//   useEffect(() => {
+//     const fetchVideos = async () => {
+//       try {
+//         const jwtToken = localStorage.getItem('jwtToken');
+//         const res = await axios.get(`${apiUrl}/file/allVideos`, {
+//           headers: {
+//             Authorization: `Bearer ${jwtToken}`,
+//           },
+//         });
+//         if (res.data.length > 0) setVideoList(res.data);
+//       } catch (err) {
+//         console.error('Error fetching videos:', err);
+//       }
+//     };
 
-    fetchVideos();
-  }, []);
+//     fetchVideos();
+//   }, []);
 
-  const totalPages = Math.ceil(videoList.length / VIDEOS_PER_PAGE);
+//   const totalPages = Math.ceil(videoList.length / VIDEOS_PER_PAGE);
 
-  const scrollToPage = (pageIndex) => {
-    const container = scrollContainerRef.current;
-    if (container) {
-      const scrollAmount = pageIndex * (320 * VIDEOS_PER_PAGE + 20 * (VIDEOS_PER_PAGE - 1));
-      container.scrollTo({ left: scrollAmount, behavior: 'smooth' });
-      setCurrentPage(pageIndex);
-    }
-  };
+//   const scrollToPage = (pageIndex) => {
+//     const container = scrollContainerRef.current;
+//     if (container) {
+//       const scrollAmount = pageIndex * (320 * VIDEOS_PER_PAGE + 20 * (VIDEOS_PER_PAGE - 1));
+//       container.scrollTo({ left: scrollAmount, behavior: 'smooth' });
+//       setCurrentPage(pageIndex);
+//     }
+//   };
 
-  const goToNext = () => {
-    if (currentPage < totalPages - 1) scrollToPage(currentPage + 1);
-  };
+//   const goToNext = () => {
+//     if (currentPage < totalPages - 1) scrollToPage(currentPage + 1);
+//   };
 
-  const goToPrev = () => {
-    if (currentPage > 0) scrollToPage(currentPage - 1);
-  };
+//   const goToPrev = () => {
+//     if (currentPage > 0) scrollToPage(currentPage - 1);
+//   };
 
-  return (
-    <div style={{
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '40px 20px',
-      fontFamily: 'sans-serif',
-      position: 'relative',
-    }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>
-        Check Our <span style={{ color: 'orange' }}>Reviews</span>
-      </h2>
+//   return (
+//     <div style={{
+//       maxWidth: '1200px',
+//       margin: '0 auto',
+//       padding: '40px 20px',
+//       fontFamily: 'sans-serif',
+//       position: 'relative',
+//     }}>
+//       <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>
+//         Check Our <span style={{ color: 'orange' }}>Reviews</span>
+//       </h2>
 
-      <div style={{ position: 'relative' }}>
-        {/* Left Arrow */}
-        {currentPage > 0 && (
-          <button
-            onClick={goToPrev}
-            style={{
-              position: 'absolute',
-              left: '-20px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              backgroundColor: 'orange',
-              color: 'white',
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              cursor: 'pointer',
-              zIndex: 1,
-              fontSize: '20px',
-            }}
-          >
-            ⬅
-          </button>
-        )}
+//       <div style={{ position: 'relative' }}>
+//         {/* Left Arrow */}
+//         {currentPage > 0 && (
+//           <button
+//             onClick={goToPrev}
+//             style={{
+//               position: 'absolute',
+//               left: '-20px',
+//               top: '50%',
+//               transform: 'translateY(-50%)',
+//               backgroundColor: 'orange',
+//               color: 'white',
+//               border: 'none',
+//               borderRadius: '50%',
+//               width: '40px',
+//               height: '40px',
+//               cursor: 'pointer',
+//               zIndex: 1,
+//               fontSize: '20px',
+//             }}
+//           >
+//             ⬅
+//           </button>
+//         )}
 
-        {/* Right Arrow */}
-        {currentPage < totalPages - 1 && (
-          <button
-            onClick={goToNext}
-            style={{
-              position: 'absolute',
-              right: '-20px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              backgroundColor: 'orange',
-              color: 'white',
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              cursor: 'pointer',
-              zIndex: 1,
-              fontSize: '20px',
-            }}
-          >
-            ➡
-          </button>
-        )}
+//         {/* Right Arrow */}
+//         {currentPage < totalPages - 1 && (
+//           <button
+//             onClick={goToNext}
+//             style={{
+//               position: 'absolute',
+//               right: '-20px',
+//               top: '50%',
+//               transform: 'translateY(-50%)',
+//               backgroundColor: 'orange',
+//               color: 'white',
+//               border: 'none',
+//               borderRadius: '50%',
+//               width: '40px',
+//               height: '40px',
+//               cursor: 'pointer',
+//               zIndex: 1,
+//               fontSize: '20px',
+//             }}
+//           >
+//             ➡
+//           </button>
+//         )}
 
-        {/* Video List */}
-        <div
-          ref={scrollContainerRef}
-          style={{
-            display: 'flex',
-            overflowX: 'hidden',
-            gap: '20px',
-            scrollBehavior: 'smooth',
-            paddingBottom: '10px',
-          }}
-        >
-          {videoList.map((videoUrl, index) => (
-            <div key={index} style={{
-              minWidth: '300px',
-              flex: '0 0 auto',
-              textAlign: 'center'
-            }}>
-              <div style={{
-                borderRadius: '10px',
-                overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                position: 'relative'
-              }}>
-                <ReactPlayer
-                  url={videoUrl}
-                  playing={playingIndex === index}
-                  controls
-                  muted
-                  width="100%"
-                  height="200px"
-                  light={true}
-                  onClickPreview={() => setPlayingIndex(index)}
-                  onPlay={() => setPlayingIndex(index)}
-                />
-              </div>
-              <p style={{ marginTop: '10px', fontWeight: 'bold' }}>
-                {`Review ${index + 1}`}
-              </p>
-            </div>
-          ))}
-        </div>
+//         {/* Video List */}
+//         <div
+//           ref={scrollContainerRef}
+//           style={{
+//             display: 'flex',
+//             overflowX: 'hidden',
+//             gap: '20px',
+//             scrollBehavior: 'smooth',
+//             paddingBottom: '10px',
+//           }}
+//         >
+//           {videoList.map((videoUrl, index) => (
+//             <div key={index} style={{
+//               minWidth: '300px',
+//               flex: '0 0 auto',
+//               textAlign: 'center'
+//             }}>
+//               <div style={{
+//                 borderRadius: '10px',
+//                 overflow: 'hidden',
+//                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+//                 position: 'relative'
+//               }}>
+//                 <ReactPlayer
+//                   url={videoUrl}
+//                   playing={playingIndex === index}
+//                   controls
+//                   muted
+//                   width="100%"
+//                   height="200px"
+//                   light={true}
+//                   onClickPreview={() => setPlayingIndex(index)}
+//                   onPlay={() => setPlayingIndex(index)}
+//                 />
+//               </div>
+//               <p style={{ marginTop: '10px', fontWeight: 'bold' }}>
+//                 {`Review ${index + 1}`}
+//               </p>
+//             </div>
+//           ))}
+//         </div>
 
-        {/* Dot indicators below */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', gap: '10px' }}>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <span
-              key={i}
-              onClick={() => scrollToPage(i)}
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor: i === currentPage ? 'orange' : '#ccc',
-                cursor: 'pointer',
-                display: 'inline-block',
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+//         {/* Dot indicators below */}
+//         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', gap: '10px' }}>
+//           {Array.from({ length: totalPages }).map((_, i) => (
+//             <span
+//               key={i}
+//               onClick={() => scrollToPage(i)}
+//               style={{
+//                 width: '12px',
+//                 height: '12px',
+//                 borderRadius: '50%',
+//                 backgroundColor: i === currentPage ? 'orange' : '#ccc',
+//                 cursor: 'pointer',
+//                 display: 'inline-block',
+//               }}
+//             />
+//           ))}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
-export default VerifiedVideos;
+// export default VerifiedVideos;
+
+
+// import React, { useState, useEffect, useRef } from 'react';
+// import ReactPlayer from 'react-player';
+// import axios from 'axios';
+// import img from "../../images/blog/image.png"
+// import { apiUrl } from '../../services/ApplicantAPIService';
+
+// const VerifiedVideos = () => {
+//   const [videoList, setVideoList] = useState([]);
+//   const [playingIndex, setPlayingIndex] = useState(null);
+//   const [currentPage, setCurrentPage] = useState(0);
+//   const [thumbnails, setThumbnails] = useState({});
+
+//   const scrollContainerRef = useRef(null);
+//   const isDragging = useRef(false);
+//   const startX = useRef(0);
+//   const scrollLeft = useRef(0);
+
+//   const VIDEOS_PER_PAGE = 3;
+
+//   useEffect(() => {
+//     const fetchVideos = async () => {
+//       try {
+//         const jwtToken = localStorage.getItem('jwtToken');
+//         const res = await axios.get(`${apiUrl}/file/allVideos`, {
+//           headers: {
+//             Authorization: `Bearer ${jwtToken}`,
+//           },
+//         });
+//         if (res.data.length > 0) {
+//           setVideoList(res.data);
+//           generateThumbnails(res.data);
+//         }
+//       } catch (err) {
+//         console.error('Error fetching videos:', err);
+//       }
+//     };
+
+//     fetchVideos();
+//   }, []);
+
+// const generateThumbnails = (videos) => {
+//   videos.forEach((url) => {
+//     const video = document.createElement('video');
+//     video.src = url;
+//     video.crossOrigin = 'anonymous';
+//     video.preload = 'auto'; // Ensure enough data is loaded
+
+//     const seekToTime = () => {
+//       const duration = video.duration;
+//       const seekTime = Math.min(10, duration - 10); // Avoid end of video issues
+//       video.currentTime = seekTime;
+//     };
+
+//     video.addEventListener('loadedmetadata', () => {
+//       // Some videos require 'loadeddata' to seek properly
+//       if (video.readyState >= 2) {
+//         seekToTime();
+//       } else {
+//         video.addEventListener('loadeddata', seekToTime, { once: true });
+//       }
+//     });
+
+//     video.addEventListener('seeked', () => {
+//       const canvas = document.createElement('canvas');
+//       canvas.width = video.videoWidth;
+//       canvas.height = video.videoHeight;
+//       const ctx = canvas.getContext('2d');
+//       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+//       const dataURL = canvas.toDataURL('image/jpeg');
+//       setThumbnails((prev) => ({ ...prev, [url]: dataURL }));
+//     });
+
+//     video.addEventListener('error', () => {
+//       console.warn('Failed to load video for thumbnail:', url);
+//     });
+//   });
+// };
+
+
+//   const totalPages = Math.ceil(videoList.length / VIDEOS_PER_PAGE);
+
+//   const scrollToPage = (pageIndex) => {
+//     const container = scrollContainerRef.current;
+//     if (container) {
+//       const scrollAmount = pageIndex * (320 * VIDEOS_PER_PAGE + 20 * (VIDEOS_PER_PAGE - 1));
+//       container.scrollTo({ left: scrollAmount, behavior: 'smooth' });
+//       setCurrentPage(pageIndex);
+//     }
+//   };
+
+//   const goToNext = () => {
+//     if (currentPage < totalPages - 1) scrollToPage(currentPage + 1);
+//   };
+
+//   const goToPrev = () => {
+//     if (currentPage > 0) scrollToPage(currentPage - 1);
+//   };
+
+//   const handleMouseDown = (e) => {
+//     isDragging.current = true;
+//     startX.current = e.pageX - scrollContainerRef.current.offsetLeft;
+//     scrollLeft.current = scrollContainerRef.current.scrollLeft;
+//   };
+
+//   const handleMouseLeave = () => {
+//     isDragging.current = false;
+//   };
+
+//   const handleMouseUp = () => {
+//     isDragging.current = false;
+//   };
+
+//   const handleMouseMove = (e) => {
+//     if (!isDragging.current) return;
+//     e.preventDefault();
+//     const x = e.pageX - scrollContainerRef.current.offsetLeft;
+//     const walk = (x - startX.current) * 1;
+//     scrollContainerRef.current.scrollLeft = scrollLeft.current - walk;
+//   };
+
+//   return (
+//     <div style={{
+//       maxWidth: '1200px',
+//       margin: '0 auto',
+//       padding: '40px 20px',
+//       fontFamily: 'sans-serif',
+//       position: 'relative',
+//     }}>
+//       <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>
+//         Check Our <span style={{ color: 'orange' }}>Reviews</span>
+//       </h2>
+
+//       <div style={{ position: 'relative' }}>
+//         {currentPage > 0 && (
+//           <button onClick={goToPrev} style={arrowStyle('left')}>
+//             ⬅
+//           </button>
+//         )}
+//         {/* <button class="items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border bg-background hover:text-accent-foreground h-10 w-10 absolute top-1/2 right-0 -translate-y-1/2 transform translate-x-1/2 rounded-full border-border/50 hover:border-tech-purple hover:bg-tech-purple/10 z-20 hidden md:flex"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right h-5 w-5"><path d="m9 18 6-6-6-6"></path></svg></button> */}
+//         {currentPage < totalPages - 1 && (
+//           <button onClick={goToNext} style={arrowStyle('right')}>
+//                        ➡
+
+// {/* <img src={img} alt="Blog Image" style={{height:"15px", width:"20px", borderRadius:"50%"}}  /> */}
+//           </button>
+//         )}
+
+//         <div
+//           ref={scrollContainerRef}
+//           onMouseDown={handleMouseDown}
+//           onMouseLeave={handleMouseLeave}
+//           onMouseUp={handleMouseUp}
+//           onMouseMove={handleMouseMove}
+//           style={{
+//             display: 'flex',
+//             overflowX: 'scroll',
+//             gap: '20px',
+//             scrollBehavior: 'smooth',
+//             cursor: isDragging.current ? 'grabbing' : 'grab',
+//             paddingBottom: '10px',
+//             scrollbarWidth: 'none',        // Firefox
+//             msOverflowStyle: 'none',       // IE 10+
+//           }}
+//         >
+//           {videoList.map((videoUrl, index) => (
+//             <div key={index} style={{ minWidth: '300px', flex: '0 0 auto', textAlign: 'center' }}>
+//               <div style={{
+//                 borderRadius: '10px',
+//                 overflow: 'hidden',
+//                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+//                 position: 'relative'
+//               }}>
+//                 <ReactPlayer
+//                   url={videoUrl}
+//                   playing={playingIndex === index}
+//                   controls
+//                   muted
+//                   width="100%"
+//                   height="200px"
+//                   light={thumbnails[videoUrl]}
+//                   onClickPreview={() => setPlayingIndex(index)}
+//                   onPlay={() => setPlayingIndex(index)}
+//                 />
+//               </div>
+//               <p style={{ marginTop: '10px', fontWeight: 'bold' }}>
+//                 {`Review ${index + 1}`}
+//               </p>
+//             </div>
+//           ))}
+//         </div>
+
+//         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', gap: '10px' }}>
+//           {Array.from({ length: totalPages }).map((_, i) => (
+//             <span
+//               key={i}
+//               onClick={() => scrollToPage(i)}
+//               style={{
+//                 width: '12px',
+//                 height: '12px',
+//                 borderRadius: '50%',
+//                 backgroundColor: i === currentPage ? 'orange' : '#ccc',
+//                 cursor: 'pointer',
+//                 display: 'inline-block',
+//               }}
+//             />
+//           ))}
+//         </div>
+//       </div>
+
+//       {/* Inline scrollbar hiding for WebKit browsers */}
+//       <style>{`
+//         ::-webkit-scrollbar {
+//           display: none;
+//         }
+//       `}</style>
+//     </div>
+//   );
+// };
+
+// const arrowStyle = (side) => ({
+//   position: 'absolute',
+//   [side]: '-20px',
+//   top: '50%',
+//   transform: 'translateY(-50%)',
+//   backgroundColor: 'orange',
+//   color: 'white',
+//   border: 'none',
+//   borderRadius: '50%',
+//   width: '40px',
+//   height: '40px',
+//   cursor: 'pointer',
+//   zIndex: 1,
+//   fontSize: '20px',
+// });
+
+// export default VerifiedVideos;
