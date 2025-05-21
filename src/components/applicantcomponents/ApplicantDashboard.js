@@ -17,6 +17,8 @@ import SmartPhone from "../../images/dashboard/mobilebanners/smartphone.png"
 import appStoreIcon from "../../images/dashboard/mobilebanners/appstoreicon.png";
 import playStore from "../../images/dashboard/mobilebanners/playstore.png";
 
+import LearningPlan from "./LearningPlan";
+import LearningPlanModal from "./LearningPlanModal";
 
 
 const ApplicantDashboard = () => {
@@ -29,12 +31,20 @@ const ApplicantDashboard = () => {
   const navigate = useNavigate();
   const [profileid1, setprofileid] = useState();
   const userId = user.id;
-  const [isHovered, setIsHovered] = useState(false);
   const [userData, setUserData] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
   const [isWideScreen, setIsWideScreen] = useState(false);
+
+
+   const [showLearningPlan, setShowLearningPlan] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+    const [isLearningModalOpen, setLearningModalOpen] = useState(false);
+
+
+
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -543,15 +553,34 @@ const ApplicantDashboard = () => {
                             </div>
                             <div className="resumecard-button">
                               <Link
-                                to="/learning-planning"
+                                
                                 className="button-link1"
                                 style={linkStyle}
                                 onMouseEnter={() => setIsHovered(true)}
                                 onMouseLeave={() => setIsHovered(false)}
                               >
-                                <span className="button button-custom" style={spanStyle}>Start</span>
+                                <span className="button button-custom"  onClick={() => setLearningModalOpen(true)} style={spanStyle}>Start</span>
                               </Link>
                             </div>
+{/* 
+                             <div className="resumecard-button">
+        <button
+          className="button-link1"
+          style={linkStyle}
+          onClick={() => setShowLearningPlan(!showLearningPlan)}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <span className="button button-custom" style={spanStyle}>Start</span>
+        </button>
+      </div> */}
+
+      {/* Conditionally render the LearningPlan component */}
+      {showLearningPlan && (
+<div className="mt-4 z-10">
+          <LearningPlan />
+        </div>
+      )}
                           </div>
 
                           <div className="resumecard-icon" style={{ marginLeft: 'auto' }}>
@@ -569,6 +598,14 @@ const ApplicantDashboard = () => {
               </div>
             </div>
           </div>
+
+        
+
+      {/* Your Learning Plan Modal */}
+      <LearningPlanModal
+        isOpen={isLearningModalOpen}
+        onClose={() => setLearningModalOpen(false)}
+      />
         </div>
       )
       }
