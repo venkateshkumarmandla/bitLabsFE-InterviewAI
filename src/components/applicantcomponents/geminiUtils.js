@@ -9,29 +9,34 @@ export const fetchQuestions = async (skill, API_KEY) => {
         model: 'meta-llama/llama-3.3-70b-instruct:free',
         messages: [
           {
+//             Format:
+// Q1: Validate Email Format in Java
+
+// Use Case:
+// In a user registration system, it’s important to verify whether the input email is in a valid format before storing it in the database.
+
+// Test Cases:
+
+// Input: test@example.com  
+// Output: true
+
+// Input: invalid-email@com  
+// Output: false
+
             role: 'user',
-            content: `Generate strictly 2 code-based questions related to the topic "${skill}". The questions should be relevant to real-world development scenarios using the language or technology mentioned.
-            Each question should include:
-- A clear explanation of a real-time use case
-- A concise question prompt
-- 2 test cases with one sample input and output for better understanding
+            content: `Generate exactly 1 interpersonal-based coding questions related to the skill: ${skill}.
+Each question should:
+
+1. Assess practical coding or debugging ability in ${skill}
+2. Involve an interpersonal element (e.g., teamwork, communication, code review, or conflict resolution)
+3. Be framed as a real-world software development scenario
 
 Format:
-Q1: Validate Email Format in Java
+Q1: <your question>
+Q2: <your question>
 
-Use Case:
-In a user registration system, it’s important to verify whether the input email is in a valid format before storing it in the database.
-
-Test Cases:
-
-Input: test@example.com  
-Output: true
-
-Input: invalid-email@com  
-Output: false
-
-Ensure the questions are related to practical applications and are relevant for coding practice. The questions should involve logic or implementation that a developer might face in day-to-day work.
-Note: Give only use cases and avoid test cases for the programming languages which does have interpeter or compiler console`,
+Do not include any answers, explanations, or introductions.
+`,
           },
         ],
       },

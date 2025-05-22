@@ -553,12 +553,12 @@ const ApplicantDashboard = () => {
                             </div>
                             <div className="resumecard-button">
                               <Link
-                                // to="/mock-interview-by-ai"
+                                to="/mock-interview-by-ai"
                                 className="button-link1"
                                 style={linkStyle}
                                 onMouseEnter={() => setIsHovered(true)}
                                 onMouseLeave={() => setIsHovered(false)}
-                                onClick={handlePopUp}
+                                // onClick={handlePopUp}
                               >
                                 <span className="button button-custom" style={spanStyle}>Start</span>
                               </Link>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUserContext } from '../common/UserProvider';
 import axios from 'axios';
 import { apiUrl } from '../../services/ApplicantAPIService';
@@ -7,6 +7,10 @@ import { Link } from "react-router-dom";
 import Taketest from '../../images/user/avatar/Taketest.png';
 import { ClipLoader } from "react-spinners"
 import { API_KEY } from '../../apikey';
+import { BiArrowBack } from "react-icons/bi";
+import { FiMic } from 'react-icons/fi';
+import { FaKeyboard } from 'react-icons/fa';
+
 const MockInterviewByAi = () => {
   const { user } = useUserContext();
   const userId = user.id;
@@ -22,14 +26,74 @@ const MockInterviewByAi = () => {
   const [questionsShown, setQuestionsShown] = useState(true);
   const [analysisShown, setAnalysisShown] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [micClicked, setMicClicked] = useState(false);
+  const [audioStatus, setAudioStatus] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunks = useRef([]);
+   const [audioURL, setAudioURL] = useState(null);
+
+
+    const handleToggleInputMode = () => {
+    setMicClicked(prev => !prev);
+  };
+
+  
+  const handleRecording = async () => {
+  if (!audioStatus) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunks.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        audioChunks.current.push(e.data);
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+        console.log('Recorded audio blob:', audioBlob);
+        const url = URL.createObjectURL(audioBlob);
+          setAudioURL(url);
+        
+      };
+
+      mediaRecorderRef.current.start();
+      console.log('Recording started...');
+      setAudioStatus(true);
+      setMicClicked(true);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+    }
+  } else {
+    // Stop recording
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+  mediaRecorderRef.current.stop();
+
+  // Use the window.navigator object to access the media stream
+  const tracks = window.navigator.mediaDevices?.getUserMedia
+    ? mediaRecorderRef.current.stream?.getTracks()
+    : [];
+
+  // Stop all tracks to turn off the mic
+  if (tracks && tracks.length > 0) {
+    tracks.forEach(track => track.stop());
+    console.log('Microphone access released.');
+  } else {
+    console.warn('No media tracks found to stop.');
+  }
+
+  setAudioStatus(false);
+}
+
+  }
+};
+
+
 
   const linkStyle = {
     backgroundColor: '#F97316',
     display: 'inline-block',
   };
-
-  //  Gemini api
-  // const API_KEY = 'AIzaSyAsYnprqHafTwJbq8J2QbsbiK1FyR93spk';
 
 
   useEffect(() => {
@@ -122,7 +186,7 @@ const MockInterviewByAi = () => {
         const response = await axios.get(`${apiUrl}/skill-badges/${user.id}/skill-badges`, {
           headers: { Authorization: `Bearer ${jwtToken}` }
         });
-       
+
         const data = response.data;
         const names = data.skillsRequired.map(skills => skills.skillName);
         const names2 = data.applicantSkillBadges.map(skills => skills.skillBadge.name);
@@ -138,7 +202,7 @@ const MockInterviewByAi = () => {
   }, [userId]);
 
   const handleCodingQuestions = () => {
- window.location.href = "https://www.hackerrank.com/bitlabs-1747748513";
+    window.location.href = "https://www.hackerrank.com/bitlabs-1747748513";
   }
 
   const handleSkillFetch = async (skill) => {
@@ -176,6 +240,7 @@ const MockInterviewByAi = () => {
   }
 
 
+
   return (
     <>
       {loading ? <div className="spinner-container">
@@ -192,7 +257,7 @@ const MockInterviewByAi = () => {
                       <>
                         {/* //  page title  */}
                         <div className="title-dashboard"></div>
-                        <div className="userName-title">
+                        <div className="userName-title" style={{ marginBottom: '10px' }}>
                           Mock Interview By AI
                         </div>
 
@@ -202,7 +267,7 @@ const MockInterviewByAi = () => {
                         <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
                           <div className="card" style={{ cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
                             <div className={!isWideScreen ? 'resumecard' : ''}>
-                              <div className="resumecard-content">
+                              <div className="resumecard-content" style={{ marginTop: '-10px' }}>
                                 <div className="resumecard-text">
                                   <div className="resumecard-heading">
                                     <h2 className="heading1">Coding questions</h2>
@@ -214,7 +279,7 @@ const MockInterviewByAi = () => {
                                     <Link
                                       className="button-link1"
                                       style={linkStyle}
-                                    onClick={handleCodingQuestions}
+                                      onClick={handleCodingQuestions}
 
                                     >
                                       <span className="button button-custom" style={spanStyle}>prepare</span>
@@ -260,6 +325,9 @@ const MockInterviewByAi = () => {
 
                           <div className="header">
                             <h3>
+                              <span onClick={handleBackButton} style={{ cursor: 'pointer' }}>
+                                <BiArrowBack size={24} />
+                              </span>
                               <span className="text-name1">AI Mock questions</span>
                               <h4 className='test-sub'>
                                 Question {currentIndex + 1} / {questions.length}
@@ -268,7 +336,9 @@ const MockInterviewByAi = () => {
                           </div>
                           <div className="separator"></div>
                           <div style={{ marginBottom: '30px' }}>
+                            <div>
                             <h4>{currentIndex + 1}. {questions[currentIndex].question}</h4>
+                            {!micClicked ? (
                             <textarea
                               rows={4}
                               value={inputValue}
@@ -276,8 +346,19 @@ const MockInterviewByAi = () => {
                               style={{ width: '100%', padding: '10px', borderRadius: '6px' }}
                               placeholder="Type your answer here..."
                             />
+                            ) : ( <><span onClick={handleRecording}><FiMic size={24} color="#333" /></span>
+                            {!audioStatus ? <audio controls src={audioURL} /> :
+                              (<span style={{ marginLeft: '10px' }}>Recording...  </span>
+                                
+                              )}</>
+                            )
+                            }
+                            </div>
                             <br />
                             <div className="resumecard-button">
+                                <span onClick={handleToggleInputMode} style={{ cursor: 'pointer' }}>
+          {micClicked ? <FaKeyboard size={24} color="#333" /> : <FiMic size={24} color="#333" />}
+        </span>
                               <Link className="button-link1" style={linkStyle}
                                 onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}>
                                 <span className="button button-custom" style={spanStyle}>
