@@ -31,6 +31,46 @@ const MockInterviewByAi = () => {
   const mediaRecorderRef = useRef(null);
   const audioChunks = useRef([]);
    const [audioURL, setAudioURL] = useState(null);
+   const lastQuestion = 3;
+   const [firstQuestion, setFirstQuestion] = useState(true);
+   const [sessionId, setSessionId] = useState();
+   const [questionNumber, setQuestionNumber] = useState();
+   const [transcript, setTranscript] = useState('');
+
+
+  
+
+   const startSpeechRecognition = () => {
+     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    console.error("Speech Recognition API not supported in this browser.");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (event) => {
+    const speechTranscript = event.results[0][0].transcript;
+    console.log(speechTranscript);
+    setTranscript(speechTranscript);
+    setInputValue(speechTranscript); // Assuming you want to set this as the answer
+  };
+
+  recognition.onerror = (event) => {
+    console.error("Speech recognition error:", event.error);
+  };
+
+  recognition.onend = () => {
+    console.log("Speech recognition ended.");
+  };
+
+  recognition.start();
+};
+
+
 
 
     const handleToggleInputMode = () => {
@@ -118,17 +158,6 @@ const MockInterviewByAi = () => {
     fontWeight: '600',
   };
 
-  const handleNext = () => {
-    const updatedAnswers = [...answers];
-    updatedAnswers[currentIndex] = {
-      question: questions[currentIndex].question,
-      answer: inputValue
-    };
-    setAnswers(updatedAnswers);
-    setInputValue('');
-    setCurrentIndex(currentIndex + 1);
-  };
-
 
   //   const handleSubmittion = async(score) => {
   //      try {
@@ -159,22 +188,21 @@ const MockInterviewByAi = () => {
   // }, [overallScore]);
 
   const handleSubmitAll = async () => {
-    setLoading(true);
-    const updatedAnswers = [...answers];
-    updatedAnswers[currentIndex] = {
-      question: questions[currentIndex].question,
-      answer: inputValue
-    };
-    setAnswers(updatedAnswers);
-    const result = await analyzeAnswers(updatedAnswers, API_KEY);
-    setAnalysis(result);
-    if (result) setLoading(false);
+    // setLoading(true);
+    // const updatedAnswers = [...answers];
+    // updatedAnswers[currentIndex] = {
+    //   question: questions[currentIndex].question,
+    //   answer: inputValue
+    // };
+    // setAnswers(updatedAnswers);
+    // const result = await analyzeAnswers(updatedAnswers, API_KEY);
+    setAnalysis("final analysis report");
+    // if (analysis) setLoading(false);
     setInputValue('');
     setQuestionsShown(false);
     setAnalysisShown(true);
     setQuestions([]);
   };
-
 
 
   useEffect(() => {
@@ -230,6 +258,83 @@ const MockInterviewByAi = () => {
   //   }
   // }
 
+  const handleQuestionFetch = async () => {
+    setLoading(true);
+    setAnalysis('');
+   try {
+     const jwtToken = localStorage.getItem("jwtToken");
+
+     const result = await axios.post(`${apiUrl}/api/interview/start`, userId, {
+      headers: {
+        Authorization: `Bearer ${jwtToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = result.data;
+    console.log(data);
+    setQuestions(data);
+    setQuestionNumber(data.questionNumber);
+    setSessionId(data.sessionId);
+    setHomePage(false);
+      setLoading(false);
+    if(result) setFirstQuestion(false);
+      
+    } catch (err) {
+      console.error("Failed to load questions", err);
+      setQuestions([]);
+    }
+      
+  }
+
+   const handleAdaptiveQuestionFetch = async () => {
+    setAnswers(inputValue);
+    console.log(answers);
+    try{
+    const jwtToken = localStorage.getItem("jwtToken");
+    const payload = {
+      sessionId: sessionId,
+      questionNumber: questionNumber, 
+      answer: answers
+    };
+    console.log(payload);
+
+    const result = await axios.post(`${apiUrl}/api/interview/answer`, payload, {
+      headers: {
+        Authorization: `Bearer ${jwtToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = result.data;
+    console.log(data);
+    setQuestions(data);
+    setQuestionNumber(data.questionNumber);
+    console.log(questionNumber);
+    setSessionId(data.sessionId);
+    setHomePage(false);
+      setLoading(false);
+      setInputValue('');
+    if(result) setFirstQuestion(false);
+      
+    } catch (err) {
+      console.error("Failed to load questions", err);
+      setQuestions([]);
+    }
+  }
+
+
+  
+  const handleNext = () => {
+    const updatedAnswers = [...answers];
+    updatedAnswers[currentIndex] = {
+      question: questions[currentIndex].question,
+      answer: inputValue
+    };
+    setAnswers(updatedAnswers);
+    setInputValue('');
+    setCurrentIndex(currentIndex + 1);
+  };
+
+
 
   const handleBackButton = () => {
     setHomePage(true);
@@ -237,6 +342,7 @@ const MockInterviewByAi = () => {
     setAnalysisShown(false);
     setQuestions([]);
     setCurrentIndex(0);
+    setInputValue('');
   }
 
 
@@ -304,6 +410,7 @@ const MockInterviewByAi = () => {
                         <div className="row">
                           {skills.map((skill, index) => (
                             <div key={index} className="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                              {/* <div className="card" style={{ cursor: "pointer" }} onClick={handleQuestionFetch} >  */}
                               <div className="card" style={{ cursor: "pointer" }} onClick={() => handleSkillFetch(skill)}>
                                 <div className="content">
                                   <span className="title-count">Skill</span>
@@ -330,7 +437,8 @@ const MockInterviewByAi = () => {
                               </span>
                               <span className="text-name1">AI Mock questions</span>
                               <h4 className='test-sub'>
-                                Question {currentIndex + 1} / {questions.length}
+                                {/* Question {currentIndex + 1} / {lastQuestion} */}
+                                 Question {currentIndex + 1} / {questions.length}
                               </h4>
                             </h3>
                           </div>
@@ -338,6 +446,7 @@ const MockInterviewByAi = () => {
                           <div style={{ marginBottom: '30px' }}>
                             <div>
                             <h4>{currentIndex + 1}. {questions[currentIndex].question}</h4>
+                            {/* {questions.question} */}
                             {!micClicked ? (
                             <textarea
                               rows={4}
@@ -346,8 +455,8 @@ const MockInterviewByAi = () => {
                               style={{ width: '100%', padding: '10px', borderRadius: '6px' }}
                               placeholder="Type your answer here..."
                             />
-                            ) : ( <><span onClick={handleRecording}><FiMic size={24} color="#333" /></span>
-                            {!audioStatus ? <audio controls src={audioURL} /> :
+                            ) : ( <><span onClick={ () => {handleRecording(); startSpeechRecognition();}}><FiMic size={24} color="#333" /></span>
+                            {!audioStatus ? <><audio controls src={audioURL} />  {inputValue}</>:
                               (<span style={{ marginLeft: '10px' }}>Recording...  </span>
                                 
                               )}</>
@@ -360,8 +469,10 @@ const MockInterviewByAi = () => {
           {micClicked ? <FaKeyboard size={24} color="#333" /> : <FiMic size={24} color="#333" />}
         </span>
                               <Link className="button-link1" style={linkStyle}
-                                onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}>
+                                // onClick={questionNumber === lastQuestion ? handleSubmitAll : handleAdaptiveQuestionFetch}>
+                                 onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}>
                                 <span className="button button-custom" style={spanStyle}>
+                                  {/* {questionNumber === lastQuestion ? 'Submit All' : 'Next'} */}
                                   {currentIndex === questions.length - 1 ? 'Submit All' : 'Next'}
                                 </span>
                               </Link>
