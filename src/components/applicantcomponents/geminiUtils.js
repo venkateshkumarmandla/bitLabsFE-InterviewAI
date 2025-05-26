@@ -24,7 +24,7 @@ export const fetchQuestions = async (skill, API_KEY) => {
 // Output: false
 
             role: 'user',
-            content: `Generate exactly 1 interpersonal-based coding questions related to the skill: ${skill}.
+            content: `Generate exactly 2 interpersonal-based coding questions related to the skill: ${skill}.
 Each question should:
 
 1. Assess practical coding or debugging ability in ${skill}

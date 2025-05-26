@@ -9,7 +9,8 @@ import { ClipLoader } from "react-spinners"
 import { API_KEY } from '../../apikey';
 import { BiArrowBack } from "react-icons/bi";
 import { FiMic } from 'react-icons/fi';
-import { FaKeyboard } from 'react-icons/fa';
+import { FaKeyboard, FaLessThan } from 'react-icons/fa';
+import Modal from './MockInterviewModel'
 
 const MockInterviewByAi = () => {
   const { user } = useUserContext();
@@ -36,8 +37,17 @@ const MockInterviewByAi = () => {
    const [sessionId, setSessionId] = useState();
    const [questionNumber, setQuestionNumber] = useState();
    const [transcript, setTranscript] = useState('');
+    const [isModalOpen, setModalOpen] = useState(false);
+   
 
 
+   const handleCloseModal = () => {
+    setModalOpen(false);
+  };
+
+  const handleModal = () => {
+    setModalOpen(true);
+  }
   
 
    const startSpeechRecognition = () => {
@@ -48,7 +58,7 @@ const MockInterviewByAi = () => {
   }
 
   const recognition = new SpeechRecognition();
-  recognition.continuous = true;
+  recognition.continuous = false;
   recognition.interimResults = false;
   recognition.lang = 'en-US';
 
@@ -56,7 +66,7 @@ const MockInterviewByAi = () => {
     const speechTranscript = event.results[0][0].transcript;
     console.log(speechTranscript);
     setTranscript(speechTranscript);
-    setInputValue(speechTranscript); // Assuming you want to set this as the answer
+    setInputValue(speechTranscript); 
   };
 
   recognition.onerror = (event) => {
@@ -71,11 +81,29 @@ const MockInterviewByAi = () => {
 };
 
 
-
-
     const handleToggleInputMode = () => {
-    setMicClicked(prev => !prev);
+      setInputValue('');
+      setMicClicked(prev => !prev);
   };
+
+ const stopAudio = () => {
+  if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+    mediaRecorderRef.current.stop();
+
+    // Get the media stream from the mediaRecorderRef
+    const stream = mediaRecorderRef.current.stream;
+    if (stream) {
+      const tracks = stream.getTracks();
+      tracks.forEach(track => track.stop());
+      console.log('Microphone access released.');
+    } else {
+      console.warn('No media stream found to stop.');
+    }
+
+    setAudioStatus(false);
+  }
+};
+
 
   
   const handleRecording = async () => {
@@ -106,24 +134,25 @@ const MockInterviewByAi = () => {
     }
   } else {
     // Stop recording
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-  mediaRecorderRef.current.stop();
+//     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+//   mediaRecorderRef.current.stop();
 
-  // Use the window.navigator object to access the media stream
-  const tracks = window.navigator.mediaDevices?.getUserMedia
-    ? mediaRecorderRef.current.stream?.getTracks()
-    : [];
+//   // Use the window.navigator object to access the media stream
+//   const tracks = window.navigator.mediaDevices?.getUserMedia
+//     ? mediaRecorderRef.current.stream?.getTracks()
+//     : [];
 
-  // Stop all tracks to turn off the mic
-  if (tracks && tracks.length > 0) {
-    tracks.forEach(track => track.stop());
-    console.log('Microphone access released.');
-  } else {
-    console.warn('No media tracks found to stop.');
-  }
+//   // Stop all tracks to turn off the mic
+//   if (tracks && tracks.length > 0) {
+//     tracks.forEach(track => track.stop());
+//     console.log('Microphone access released.');
+//   } else {
+//     console.warn('No media tracks found to stop.');
+//   }
 
-  setAudioStatus(false);
-}
+//   setAudioStatus(false);
+// }
+stopAudio();
 
   }
 };
@@ -187,22 +216,7 @@ const MockInterviewByAi = () => {
   //   handleSubmittion(overallScore);
   // }, [overallScore]);
 
-  const handleSubmitAll = async () => {
-    // setLoading(true);
-    // const updatedAnswers = [...answers];
-    // updatedAnswers[currentIndex] = {
-    //   question: questions[currentIndex].question,
-    //   answer: inputValue
-    // };
-    // setAnswers(updatedAnswers);
-    // const result = await analyzeAnswers(updatedAnswers, API_KEY);
-    setAnalysis("final analysis report");
-    // if (analysis) setLoading(false);
-    setInputValue('');
-    setQuestionsShown(false);
-    setAnalysisShown(true);
-    setQuestions([]);
-  };
+ 
 
 
   useEffect(() => {
@@ -233,11 +247,14 @@ const MockInterviewByAi = () => {
     window.location.href = "https://www.hackerrank.com/bitlabs-1747748513";
   }
 
-  const handleSkillFetch = async (skill) => {
+  const handleSkillFetch = async () => {
+    setModalOpen(false);
     setLoading(true);
-    setSelectedSkill(skill);
+    setAudioStatus(false);
+      setMicClicked();
+    // setSelectedSkill(skills);
     try {
-      const result = await fetchQuestions(skill, API_KEY);
+      const result = await fetchQuestions(skills, API_KEY);
       setHomePage(false);
       setQuestions(result);
       setLoading(false);
@@ -273,7 +290,7 @@ const MockInterviewByAi = () => {
     const data = result.data;
     console.log(data);
     setQuestions(data);
-    setQuestionNumber(data.questionNumber);
+    setQuestionNumber(data.nextQuestionNumber);
     setSessionId(data.sessionId);
     setHomePage(false);
       setLoading(false);
@@ -307,7 +324,7 @@ const MockInterviewByAi = () => {
     const data = result.data;
     console.log(data);
     setQuestions(data);
-    setQuestionNumber(data.questionNumber);
+    setQuestionNumber(data.nextQuestionNumber);
     console.log(questionNumber);
     setSessionId(data.sessionId);
     setHomePage(false);
@@ -322,8 +339,56 @@ const MockInterviewByAi = () => {
   }
 
 
+   const handleSubmitAll = async () => {
+    stopAudio();
+    setAudioStatus(false);
+      setMicClicked(false);
+    // setLoading(true);
+    // setAnswers(inputValue);
+    // console.log(answers);
+    // try{
+    // const jwtToken = localStorage.getItem("jwtToken");
+    // const payload = {
+    //   sessionId: sessionId,
+    //   questionNumber: questionNumber, 
+    //   answer: answers
+    // };
+    // console.log(payload);
+
+    // const result = await axios.post(`${apiUrl}/api/interview/answer`, payload, {
+    //   headers: {
+    //     Authorization: `Bearer ${jwtToken}`,
+    //     'Content-Type': 'application/json'
+    //   }
+    // });
+    // const data = result.data;
+    // console.log(data);
+    // setAnalysis(data);
+    // console.log(analysis);
+    // setQuestions(data);
+    // setQuestionNumber(data.nextQuestionNumber);
+    // console.log(questionNumber);
+    // setSessionId(data.sessionId);
+    // setHomePage(false);
+    //   setLoading(false);
+    //   setInputValue('');
+    // if(result) setFirstQuestion(false);
+      
+    // } catch (err) {
+    //   console.error("Failed to load analysis", err);
+    //   setQuestions([]);
+    // }
+    setInputValue('');
+    setQuestionsShown(false);
+    setAnalysisShown(true);
+    setQuestions([]);
+  };
+
   
   const handleNext = () => {
+    stopAudio();
+    setAudioStatus(false);
+      setMicClicked(false);
     const updatedAnswers = [...answers];
     updatedAnswers[currentIndex] = {
       question: questions[currentIndex].question,
@@ -343,6 +408,8 @@ const MockInterviewByAi = () => {
     setQuestions([]);
     setCurrentIndex(0);
     setInputValue('');
+    setAudioStatus(false);
+      setMicClicked(false);
   }
 
 
@@ -364,11 +431,11 @@ const MockInterviewByAi = () => {
                         {/* //  page title  */}
                         <div className="title-dashboard"></div>
                         <div className="userName-title" style={{ marginBottom: '10px' }}>
-                          Mock Interview By AI
+                          Mock Test By AI
                         </div>
 
 
-                        {/* AI question bank  */}
+                        {/* Coding questions  */}
 
                         <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
                           <div className="card" style={{ cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
@@ -407,18 +474,41 @@ const MockInterviewByAi = () => {
 
 
                         {/* skill fetch  */}
+                        <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
+                          <div className='card' >
                         <div className="row">
-                          {skills.map((skill, index) => (
-                            <div key={index} className="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
-                              {/* <div className="card" style={{ cursor: "pointer" }} onClick={handleQuestionFetch} >  */}
-                              <div className="card" style={{ cursor: "pointer" }} onClick={() => handleSkillFetch(skill)}>
-                                <div className="content">
-                                  <span className="title-count">Skill</span>
+                          <div className="resumecard-heading">
+                                    <h2 className="heading1">AI questions</h2>
+                                    <div className="" style={{ marginBottom:'5px', fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
+                                     Boost your confidence and sharpen your skills—take an AI-powered interview tailored just for your expertise!
+                                    </div>
+                                    </div>
+                          <div className="skills-container" style={{ display: 'flex', flexWrap: 'wrap' }}>
+                             {skills.map((skill, index) => (
+                            
+                            <div key={index} >
+                              <div className="skill-but" style={{ backgroundColor: '#498C07', display: 'inline-flex', marginRight: '2px' }}>
+             
+                             {/* <div className="card" style={{ cursor: "pointer" }} onClick={handleQuestionFetch} >   */}
+                                    
                                   <h4>{skill}</h4>
                                 </div>
-                              </div>
-                            </div>
+                                </div>
+                            
+                            
                           ))}
+                          </div>
+                          <div className="resumecard-button">
+                                    <Link
+                                      className="button-link1"
+                                      style={linkStyle}
+                                      onClick={handleModal}
+                                    >
+                                      <span className="button button-custom" style={spanStyle}>Start</span>
+                                    </Link>
+                                  </div>
+                          </div>
+                        </div>
                         </div>
 
 
@@ -437,7 +527,7 @@ const MockInterviewByAi = () => {
                               </span>
                               <span className="text-name1">AI Mock questions</span>
                               <h4 className='test-sub'>
-                                {/* Question {currentIndex + 1} / {lastQuestion} */}
+                                {/* Question {questionNumber} / {lastQuestion} */}
                                  Question {currentIndex + 1} / {questions.length}
                               </h4>
                             </h3>
@@ -446,7 +536,7 @@ const MockInterviewByAi = () => {
                           <div style={{ marginBottom: '30px' }}>
                             <div>
                             <h4>{currentIndex + 1}. {questions[currentIndex].question}</h4>
-                            {/* {questions.question} */}
+                            {/* <h4> {questions.nextQuestion} </h4> */}
                             {!micClicked ? (
                             <textarea
                               rows={4}
@@ -469,8 +559,8 @@ const MockInterviewByAi = () => {
           {micClicked ? <FaKeyboard size={24} color="#333" /> : <FiMic size={24} color="#333" />}
         </span>
                               <Link className="button-link1" style={linkStyle}
-                                // onClick={questionNumber === lastQuestion ? handleSubmitAll : handleAdaptiveQuestionFetch}>
-                                 onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}>
+                                // {/*onClick={questionNumber === lastQuestion ? handleSubmitAll : handleAdaptiveQuestionFetch}>*/}
+                                 onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}> 
                                 <span className="button button-custom" style={spanStyle}>
                                   {/* {questionNumber === lastQuestion ? 'Submit All' : 'Next'} */}
                                   {currentIndex === questions.length - 1 ? 'Submit All' : 'Next'}
@@ -487,9 +577,18 @@ const MockInterviewByAi = () => {
                         {/* analysis reposrt  */}
 
                         <div className="card" style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
-                          <div style={{ marginTop: '30px', whiteSpace: 'pre-wrap' }}>
+                          <div style={{ marginTop: '30px', whiteSpace: 'pre-wrap', color:'black' }}>
                             <h4>Analysis Report</h4>
-                            <p>{analysis}</p>
+                            {/*  <p>Question 1</p> 
+                            <p>{analysis.Analysis1}</p><br />
+                            <p>Question 2</p>
+                            <p>{analysis.Analysis2}</p><br />
+                            <p>Question 3</p>
+                            <p>{analysis.Analysis3}</p><br />
+                            <p>Overall Feedback</p>
+                            <p>{analysis.overallFeedback}</p><br />
+                            <p>Score</p>
+                            <p>{analysis.score}</p><br /> */}
 
                           </div>
                           <div className="resumecard-button">
@@ -512,6 +611,7 @@ const MockInterviewByAi = () => {
           </div>
         </div>
       )}
+       {isModalOpen && <Modal onClose={handleCloseModal} onStart={handleSkillFetch} />}
     </>
 
   );
