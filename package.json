@@ -27,6 +27,7 @@
     "axios": "^1.6.0",
     "crypto-js": "^4.2.0",
     "datatables.net": "^1.13.8",
+    "face-api.js": "^0.22.2",
     "html2canvas": "^1.4.1",
     "interactjs": "^1.10.26",
     "jquery": "^3.7.1",

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Function to fetch questions based on skill
-export const fetchQuestions = async (skill, API_KEY) => {
+export const fetchQuestions = async (answer, skill, API_KEY) => {
   try {
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
@@ -23,19 +23,65 @@ export const fetchQuestions = async (skill, API_KEY) => {
 // Input: invalid-email@com  
 // Output: false
 
+// Generate exactly 2 interpersonal-based coding questions related to the skill: ${skill}.
+// Each question should:
+
+// 1. Assess practical coding or debugging ability in ${skill}
+// 2. Involve an interpersonal element (e.g., teamwork, communication, code review, or conflict resolution)
+// 3. Be framed as a real-world software development scenario
+
+// Format:
+// Q1: <your question>
+// Q2: <your question>
+
+// Do not include any answers, explanations, or introductions.
+
+// You are a technical interviewer evaluating a fresher candidate.
+
+// You are given a list of skills:${skill}. Randomly choose **one skill** from the list.
+
+// Generate **two real-world, beginner-friendly scenario-based interview question** based only on the selected skill.
+
+// Rules:
+// - The scenario must be suitable for **freshers** — someone with academic knowledge, self-study, or basic project experience.
+// - Do NOT ask questions that assume production-level experience or debugging in large systems.
+// - Keep the question focused on **one skill only**, without mixing technologies.
+// - Make it practical and realistic (e.g., from a college project, a small task, or a beginner learning context).
+// - Avoid theoretical or definition-style questions.
+// - Do not include the answer — only the question.
+// - explain the question in one line
+
+// Examples:
+// - (React) You created a simple form using React but the input fields don’t update when you type. What could be the issue?
+// - (Java) You wrote a Java program with a loop, but it's running infinitely. How would you check and fix this?
+// - (SQL) You wrote an SQL query with 'GROUP BY', but it gives an error. What could be the reason?
+
+// Now, based on the randomly selected skill from this list — [Insert skill list here] — generate only one fresher-level scenario-based question.
+
+
             role: 'user',
-            content: `Generate exactly 2 interpersonal-based coding questions related to the skill: ${skill}.
-Each question should:
+            content: `You're an AI interviewer assessing a candidate based on a provided list of skills  ${skill}.
+ 
+1. Start with the first skill in the list.
+2. Ask an **easy** level question from that skill.
+3. After receiving the applicant’s answer ${answer}, evaluate the depth and correctness:
+   - If the answer is good → ask a **medium** level question from the same skill.
+   - If the medium-level answer is good → proceed to a **hard** level question.
+   - If any answer is weak or incorrect → either:
+     - Ask a simpler question, or
+     - Skip to the next skill if they say **"I don’t know"** or clearly lack knowledge.
+4. Repeat this process for each skill.
+5. Ask **only one question at a time**, wait for the applicant’s answer before proceeding.
+6. Your goal is to **assess proficiency and depth of knowledge** skill-by-skill in a conversational way.
+7. generate different types of questions dont stick with one question
+8. Consider the total questions should be asked atmost of 15
+9. Divide the questions based on the number of skills given
+ 
+ Format:
+ Q1: <your question>
 
-1. Assess practical coding or debugging ability in ${skill}
-2. Involve an interpersonal element (e.g., teamwork, communication, code review, or conflict resolution)
-3. Be framed as a real-world software development scenario
+Skill List: ${skill}
 
-Format:
-Q1: <your question>
-Q2: <your question>
-
-Do not include any answers, explanations, or introductions.
 `,
           },
         ],

@@ -12,11 +12,11 @@ import { FiMic } from 'react-icons/fi';
 import { FaKeyboard, FaLessThan } from 'react-icons/fa';
 import Modal from './MockInterviewModel'
 
+
 const MockInterviewByAi = () => {
   const { user } = useUserContext();
   const userId = user.id;
   const [skills, setSkills] = useState([]);
-  const [selectedSkill, setSelectedSkill] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -31,152 +31,177 @@ const MockInterviewByAi = () => {
   const [audioStatus, setAudioStatus] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunks = useRef([]);
-   const [audioURL, setAudioURL] = useState(null);
-   const lastQuestion = 3;
-   const [firstQuestion, setFirstQuestion] = useState(true);
-   const [sessionId, setSessionId] = useState();
-   const [questionNumber, setQuestionNumber] = useState();
-   const [transcript, setTranscript] = useState('');
-    const [isModalOpen, setModalOpen] = useState(false);
-   
+  const [audioURL, setAudioURL] = useState(null);
+  const lastQuestion = 3;
+  const [firstQuestion, setFirstQuestion] = useState(true);
+  const [sessionId, setSessionId] = useState();
+  const [questionNumber, setQuestionNumber] = useState();
+  const [transcript, setTranscript] = useState('');
+  const [isModalOpen, setModalOpen] = useState(false);
+  const videoRef = useRef(null);
+    const peerConnectionRef = useRef(null);
+  const streamRef = useRef(null);
 
 
-   const handleCloseModal = () => {
+  const handleCloseModal = () => {
     setModalOpen(false);
   };
 
   const handleModal = () => {
     setModalOpen(true);
   }
-  
 
-   const startSpeechRecognition = () => {
-     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    console.error("Speech Recognition API not supported in this browser.");
-    return;
-  }
+ useEffect(() => {
+    const startVideo = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        streamRef.current = stream;
 
-  const recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.lang = 'en-US';
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
 
-  recognition.onresult = (event) => {
-    const speechTranscript = event.results[0][0].transcript;
-    console.log(speechTranscript);
-    setTranscript(speechTranscript);
-    setInputValue(speechTranscript); 
-  };
+        // Setup a dummy peer connection to lock and unlock the stream properly
+        peerConnectionRef.current = new RTCPeerConnection();
+        stream.getTracks().forEach(track => {
+          peerConnectionRef.current.addTrack(track, stream);
+        });
 
-  recognition.onerror = (event) => {
-    console.error("Speech recognition error:", event.error);
-  };
+        console.log('Webcam started');
+      } catch (err) {
+        console.error('Error starting webcam:', err);
+      }
+    };
 
-  recognition.onend = () => {
-    console.log("Speech recognition ended.");
-  };
+    const stopVideo = () => {
+      const stream = streamRef.current;
 
-  recognition.start();
-};
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
 
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
 
-    const handleToggleInputMode = () => {
-      setInputValue('');
-      setMicClicked(prev => !prev);
-  };
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
 
- const stopAudio = () => {
-  if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-    mediaRecorderRef.current.stop();
+      console.log('Webcam stopped');
+    };
 
-    // Get the media stream from the mediaRecorderRef
-    const stream = mediaRecorderRef.current.stream;
-    if (stream) {
-      const tracks = stream.getTracks();
-      tracks.forEach(track => track.stop());
-      console.log('Microphone access released.');
+    if (questionsShown && !homePage) {
+      startVideo();
     } else {
-      console.warn('No media stream found to stop.');
+      stopVideo();
     }
 
-    setAudioStatus(false);
-  }
-};
+    return () => {
+      stopVideo();
+    };
+  }, [questionsShown, homePage]);
 
 
-  
+
+
+
+  const startSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.error("Speech Recognition API not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      const speechTranscript = event.results[0][0].transcript;
+      console.log(speechTranscript);
+      setTranscript(speechTranscript);
+      setInputValue(speechTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+    };
+
+    recognition.onend = () => {
+      console.log("Speech recognition ended.");
+    };
+
+    recognition.start();
+  };
+
+  const handleToggleInputMode = () => {
+    setInputValue('');
+    setMicClicked(prev => !prev);
+  };
+
+  const stopAudio = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+
+      const stream = mediaRecorderRef.current.stream;
+      if (stream) {
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+        console.log('Microphone access released.');
+      } else {
+        console.warn('No media stream found to stop.');
+      }
+      setAudioStatus(false);
+    }
+  };
+
   const handleRecording = async () => {
-  if (!audioStatus) {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunks.current = [];
+    if (!audioStatus) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        audioChunks.current = [];
 
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        audioChunks.current.push(e.data);
-      };
+        mediaRecorderRef.current.ondataavailable = (e) => {
+          audioChunks.current.push(e.data);
+        };
 
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-        console.log('Recorded audio blob:', audioBlob);
-        const url = URL.createObjectURL(audioBlob);
+        mediaRecorderRef.current.onstop = () => {
+          const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+          console.log('Recorded audio blob:', audioBlob);
+          const url = URL.createObjectURL(audioBlob);
           setAudioURL(url);
-        
-      };
 
-      mediaRecorderRef.current.start();
-      console.log('Recording started...');
-      setAudioStatus(true);
-      setMicClicked(true);
-    } catch (err) {
-      console.error('Microphone access denied:', err);
+        };
+
+        mediaRecorderRef.current.start();
+        console.log('Recording started...');
+        setAudioStatus(true);
+        setMicClicked(true);
+      } catch (err) {
+        console.error('Microphone access denied:', err);
+      }
+    } else {
+      stopAudio();
     }
-  } else {
-    // Stop recording
-//     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-//   mediaRecorderRef.current.stop();
-
-//   // Use the window.navigator object to access the media stream
-//   const tracks = window.navigator.mediaDevices?.getUserMedia
-//     ? mediaRecorderRef.current.stream?.getTracks()
-//     : [];
-
-//   // Stop all tracks to turn off the mic
-//   if (tracks && tracks.length > 0) {
-//     tracks.forEach(track => track.stop());
-//     console.log('Microphone access released.');
-//   } else {
-//     console.warn('No media tracks found to stop.');
-//   }
-
-//   setAudioStatus(false);
-// }
-stopAudio();
-
-  }
-};
-
-
+  };
 
   const linkStyle = {
     backgroundColor: '#F97316',
     display: 'inline-block',
   };
 
-
   useEffect(() => {
     const handleResize = () => {
       setIsWideScreen(window.innerWidth > 780);
     };
 
-    // Initialize the state on component mount
     handleResize();
-
-    // Add event listener for resize
     window.addEventListener('resize', handleResize);
-
-    // Cleanup the event listener on component unmount
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -186,37 +211,6 @@ stopAudio();
     fontSize: '15px',
     fontWeight: '600',
   };
-
-
-  //   const handleSubmittion = async(score) => {
-  //      try {
-  //   const jwtToken = localStorage.getItem("jwtToken");
-  //   console.log(score);
-  //   const payload = {
-  //     applicantId: userId,
-  //     skill: selectedSkill, 
-  //     score: score
-  //   };
-
-  //   await axios.post(`${apiUrl}/api/test-report/save-or-update`, payload, {
-  //     headers: {
-  //       Authorization: `Bearer ${jwtToken}`,
-  //       'Content-Type': 'application/json'
-  //     }
-  //   });
-
-  //   console.log("Result submitted successfully.");
-
-  // } catch (error) {
-  //   console.error("Submission failed:", error);
-  // }
-  //   };
-
-  // useEffect(() => {
-  //   handleSubmittion(overallScore);
-  // }, [overallScore]);
-
- 
 
 
   useEffect(() => {
@@ -244,17 +238,18 @@ stopAudio();
   }, [userId]);
 
   const handleCodingQuestions = () => {
-    window.location.href = "https://www.hackerrank.com/bitlabs-1747748513";
+    window.open("https://www.hackerrank.com/bitlabs-1747748513", "_blank");
   }
 
   const handleSkillFetch = async () => {
+    setAnswers(inputValue);
     setModalOpen(false);
     setLoading(true);
     setAudioStatus(false);
-      setMicClicked();
-    // setSelectedSkill(skills);
+    setMicClicked();
     try {
-      const result = await fetchQuestions(skills, API_KEY);
+      setInputValue('');
+      const result = await fetchQuestions(answers, skills, API_KEY);
       setHomePage(false);
       setQuestions(result);
       setLoading(false);
@@ -264,85 +259,73 @@ stopAudio();
     }
   };
 
-  // const handleAiQuestions = async () => {
-  //   setHomePage(false);
-  //   try {
-  //     const result = await fetchAIQuestions(API_KEY);
-  //     setAIQuestions(result);
-  //   }
-  //   catch (err) {
-  //     console.error("Failed to fetch", err);
-  //   }
-  // }
-
   const handleQuestionFetch = async () => {
     setLoading(true);
     setAnalysis('');
-   try {
-     const jwtToken = localStorage.getItem("jwtToken");
+    try {
+      const jwtToken = localStorage.getItem("jwtToken");
 
-     const result = await axios.post(`${apiUrl}/api/interview/start`, userId, {
-      headers: {
-        Authorization: `Bearer ${jwtToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = result.data;
-    console.log(data);
-    setQuestions(data);
-    setQuestionNumber(data.nextQuestionNumber);
-    setSessionId(data.sessionId);
-    setHomePage(false);
+      const result = await axios.post(`${apiUrl}/api/interview/start`, userId, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = result.data;
+      console.log(data);
+      setQuestions(data);
+      setQuestionNumber(data.nextQuestionNumber);
+      setSessionId(data.sessionId);
+      setHomePage(false);
       setLoading(false);
-    if(result) setFirstQuestion(false);
-      
+      if (result) setFirstQuestion(false);
+
     } catch (err) {
       console.error("Failed to load questions", err);
       setQuestions([]);
     }
-      
+
   }
 
-   const handleAdaptiveQuestionFetch = async () => {
+  const handleAdaptiveQuestionFetch = async () => {
     setAnswers(inputValue);
     console.log(answers);
-    try{
-    const jwtToken = localStorage.getItem("jwtToken");
-    const payload = {
-      sessionId: sessionId,
-      questionNumber: questionNumber, 
-      answer: answers
-    };
-    console.log(payload);
+    try {
+      const jwtToken = localStorage.getItem("jwtToken");
+      const payload = {
+        sessionId: sessionId,
+        questionNumber: questionNumber,
+        answer: answers
+      };
+      console.log(payload);
 
-    const result = await axios.post(`${apiUrl}/api/interview/answer`, payload, {
-      headers: {
-        Authorization: `Bearer ${jwtToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = result.data;
-    console.log(data);
-    setQuestions(data);
-    setQuestionNumber(data.nextQuestionNumber);
-    console.log(questionNumber);
-    setSessionId(data.sessionId);
-    setHomePage(false);
+      const result = await axios.post(`${apiUrl}/api/interview/answer`, payload, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = result.data;
+      console.log(data);
+      setQuestions(data);
+      setQuestionNumber(data.nextQuestionNumber);
+      console.log(questionNumber);
+      setSessionId(data.sessionId);
+      setHomePage(false);
       setLoading(false);
       setInputValue('');
-    if(result) setFirstQuestion(false);
-      
+      if (result) setFirstQuestion(false);
+
     } catch (err) {
       console.error("Failed to load questions", err);
       setQuestions([]);
     }
   }
 
-
-   const handleSubmitAll = async () => {
+  const handleSubmitAll = async () => {
     stopAudio();
     setAudioStatus(false);
-      setMicClicked(false);
+    setMicClicked(false);
     // setLoading(true);
     // setAnswers(inputValue);
     // console.log(answers);
@@ -373,7 +356,7 @@ stopAudio();
     //   setLoading(false);
     //   setInputValue('');
     // if(result) setFirstQuestion(false);
-      
+
     // } catch (err) {
     //   console.error("Failed to load analysis", err);
     //   setQuestions([]);
@@ -384,11 +367,10 @@ stopAudio();
     setQuestions([]);
   };
 
-  
   const handleNext = () => {
     stopAudio();
     setAudioStatus(false);
-      setMicClicked(false);
+    setMicClicked(false);
     const updatedAnswers = [...answers];
     updatedAnswers[currentIndex] = {
       question: questions[currentIndex].question,
@@ -399,8 +381,6 @@ stopAudio();
     setCurrentIndex(currentIndex + 1);
   };
 
-
-
   const handleBackButton = () => {
     setHomePage(true);
     setQuestionsShown(true);
@@ -409,10 +389,8 @@ stopAudio();
     setCurrentIndex(0);
     setInputValue('');
     setAudioStatus(false);
-      setMicClicked(false);
+    setMicClicked(false);
   }
-
-
 
   return (
     <>
@@ -433,7 +411,6 @@ stopAudio();
                         <div className="userName-title" style={{ marginBottom: '10px' }}>
                           Mock Test By AI
                         </div>
-
 
                         {/* Coding questions  */}
 
@@ -472,52 +449,46 @@ stopAudio();
                           </div>
                         </div>
 
-
                         {/* skill fetch  */}
                         <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
                           <div className='card' >
-                        <div className="row">
-                          <div className="resumecard-heading">
-                                    <h2 className="heading1">AI questions</h2>
-                                    <div className="" style={{ marginBottom:'5px', fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
-                                     Boost your confidence and sharpen your skills—take an AI-powered interview tailored just for your expertise!
-                                    </div>
-                                    </div>
-                          <div className="skills-container" style={{ display: 'flex', flexWrap: 'wrap' }}>
-                             {skills.map((skill, index) => (
-                            
-                            <div key={index} >
-                              <div className="skill-but" style={{ backgroundColor: '#498C07', display: 'inline-flex', marginRight: '2px' }}>
-             
-                             {/* <div className="card" style={{ cursor: "pointer" }} onClick={handleQuestionFetch} >   */}
-                                    
-                                  <h4>{skill}</h4>
+                            <div className="row">
+                              <div className="resumecard-heading">
+                                <h2 className="heading1">AI questions</h2>
+                                <div className="" style={{ marginBottom: '5px', fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
+                                  Boost your confidence and sharpen your skills—take an AI-powered interview tailored just for your expertise!
                                 </div>
-                                </div>
-                            
-                            
-                          ))}
-                          </div>
-                          <div className="resumecard-button">
-                                    <Link
-                                      className="button-link1"
-                                      style={linkStyle}
-                                      onClick={handleModal}
-                                    >
-                                      <span className="button button-custom" style={spanStyle}>Start</span>
-                                    </Link>
+                              </div>
+                              <div className="skills-container" style={{ display: 'flex', flexWrap: 'wrap' }}>
+                                {skills.map((skill, index) => (
+
+                                  <div key={index} >
+                                    <div className="skill-but" style={{ backgroundColor: '#498C07', display: 'inline-flex', marginRight: '2px' }}>
+
+                                      {/* <div className="card" style={{ cursor: "pointer" }} onClick={handleQuestionFetch} >   */}
+
+                                      <h4>{skill}</h4>
+                                    </div>
                                   </div>
+                                ))}
+                              </div>
+                              <div className="resumecard-button">
+                                <Link
+                                  className="button-link1"
+                                  style={linkStyle}
+                                  onClick={handleModal}
+                                >
+                                  <span className="button button-custom" style={spanStyle}>Start</span>
+                                </Link>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        </div>
-
-
                       </>
                     )}
                     {!homePage && questionsShown && (
                       <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
                         {/* Questions generated by AI  */}
-
                         <div className="card" style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
 
                           <div className="header">
@@ -527,49 +498,50 @@ stopAudio();
                               </span>
                               <span className="text-name1">AI Mock questions</span>
                               <h4 className='test-sub'>
-                                {/* Question {questionNumber} / {lastQuestion} */}
-                                 Question {currentIndex + 1} / {questions.length}
+                                Question 
                               </h4>
                             </h3>
                           </div>
                           <div className="separator"></div>
                           <div style={{ marginBottom: '30px' }}>
                             <div>
-                            <h4>{currentIndex + 1}. {questions[currentIndex].question}</h4>
-                            {/* <h4> {questions.nextQuestion} </h4> */}
-                            {!micClicked ? (
-                            <textarea
-                              rows={4}
-                              value={inputValue}
-                              onChange={(e) => setInputValue(e.target.value)}
-                              style={{ width: '100%', padding: '10px', borderRadius: '6px' }}
-                              placeholder="Type your answer here..."
-                            />
-                            ) : ( <><span onClick={ () => {handleRecording(); startSpeechRecognition();}}><FiMic size={24} color="#333" /></span>
-                            {!audioStatus ? <><audio controls src={audioURL} />  {inputValue}</>:
-                              (<span style={{ marginLeft: '10px' }}>Recording...  </span>
-                                
-                              )}</>
-                            )
-                            }
+                              <h4>{questions[currentIndex].question}</h4>
+                              {/* <h4> {questions.nextQuestion} </h4> */}
+                              {!micClicked ? (
+                                <textarea
+                                  rows={4}
+                                  value={inputValue}
+                                  onChange={(e) => setInputValue(e.target.value)}
+                                  style={{ width: '100%', padding: '10px', borderRadius: '6px' }}
+                                  placeholder="Type your answer here..."
+                                />
+                              ) : (<><span onClick={() => { handleRecording(); startSpeechRecognition(); }}><FiMic size={24} color="#333" /></span>
+                                {!audioStatus ? <><audio controls src={audioURL} />  {inputValue}</> :
+                                  (<span style={{ marginLeft: '10px' }}>Recording...  </span>
+
+                                  )}</>
+                              )
+                              }
                             </div>
                             <br />
                             <div className="resumecard-button">
-                                <span onClick={handleToggleInputMode} style={{ cursor: 'pointer' }}>
-          {micClicked ? <FaKeyboard size={24} color="#333" /> : <FiMic size={24} color="#333" />}
-        </span>
+                              <span onClick={handleToggleInputMode} style={{ cursor: 'pointer' }}>
+                                {micClicked ? <FaKeyboard size={24} color="#333" /> : <FiMic size={24} color="#333" />}
+                              </span>
                               <Link className="button-link1" style={linkStyle}
                                 // {/*onClick={questionNumber === lastQuestion ? handleSubmitAll : handleAdaptiveQuestionFetch}>*/}
-                                 onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}> 
+                                //  onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}
+                                  onClick={handleSkillFetch}
+                                  >
                                 <span className="button button-custom" style={spanStyle}>
-                                  {/* {questionNumber === lastQuestion ? 'Submit All' : 'Next'} */}
-                                  {currentIndex === questions.length - 1 ? 'Submit All' : 'Next'}
-                                </span>
+                                  {/* {questionNumber === lastQuestion ? 'Submit All' : 'Next'}  */}
+                                   {/* {currentIndex === questions.length - 1 ? 'Submit All' : 'Next'}  */}
+                                   Evaluate
+                                 </span>
                               </Link>
                             </div>
                           </div>
                         </div>
-
                       </div>
                     )}
                     {!homePage && analysisShown && !questionsShown && (
@@ -577,7 +549,7 @@ stopAudio();
                         {/* analysis reposrt  */}
 
                         <div className="card" style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
-                          <div style={{ marginTop: '30px', whiteSpace: 'pre-wrap', color:'black' }}>
+                          <div style={{ marginTop: '30px', whiteSpace: 'pre-wrap', color: 'black' }}>
                             <h4>Analysis Report</h4>
                             {/*  <p>Question 1</p> 
                             <p>{analysis.Analysis1}</p><br />
@@ -596,7 +568,6 @@ stopAudio();
                               className="button-link1"
                               style={linkStyle}
                               onClick={handleBackButton}
-
                             >
                               <span className="button button-custom" style={spanStyle}>Back</span>
                             </Link>
@@ -611,9 +582,32 @@ stopAudio();
           </div>
         </div>
       )}
-       {isModalOpen && <Modal onClose={handleCloseModal} onStart={handleSkillFetch} />}
-    </>
+      {isModalOpen && <Modal onClose={handleCloseModal} onStart={handleSkillFetch} className="modelCss" />}
+      {!homePage && questionsShown && (
+        <div>
+          <video
+  ref={videoRef}
+  autoPlay
+  muted
+  width="170"
+  height="170"
+  style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    width: '170px',
+    height: '170px',
+    border: '2px solid black',
+    borderRadius: '50%',
+    objectFit: 'cover',
+    zIndex: 1000,
+    backgroundColor: 'black', // optional: fills background when video is not loaded
+  }}
+/>
 
+        </div>
+      )}
+    </>
   );
 };
 
