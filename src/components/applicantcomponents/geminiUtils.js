@@ -1,12 +1,73 @@
 import axios from 'axios';
 
 // Function to fetch questions based on skill
-export const fetchQuestions = async (answer, skill, API_KEY) => {
+// export const fetchQuestions = async (answer, skill) => {
+//   try {
+//     const response = await axios.post(
+//       'http://localhost:11434/api/generate',
+//       {
+//         model: 'mistral', 
+//         prompt: `
+// You're an AI interviewer assessing a candidate based on a provided list of skills  ${skill}.
+ 
+// 1. Start with the first skill in the list.
+// 2. Ask an **easy** level question from that skill.
+// 3. After receiving the applicant’s answer, evaluate the depth and correctness:
+//    - evaluate ${answer} this and ask next question as stated below
+//    - If you dont find any answer skip the initial question and ask next question
+//    - If the answer is good → ask a **medium** level question from the same skill.
+//    - If the medium-level answer is good → proceed to a **hard** level question.
+//    - If any answer is weak or incorrect → either:
+//      - Ask a simpler question, or
+//      - Skip to the next skill if they say **"I don’t know"** or clearly lack knowledge.
+// 4. Repeat this process for each skill.
+// 5. Ask **only one question at a time**, wait for the applicant’s answer before proceeding.
+// 6. Your goal is to **assess proficiency and depth of knowledge** skill-by-skill in a conversational way.
+// 7. generate different types of questions dont stick with one question
+// 8. Consider the total questions should be asked atmost of 15
+// 9. Divide the questions based on the number of skills given
+// 10. Dont give extra information other than questions
+// 11. Dont ask for providing the answer or other relating to requesting for answer
+ 
+//  Format:
+//  Q1: <your question>
+
+// Skill List: ${skill}
+
+
+//         `,
+//         stream: false // Set to false to get full result at once
+//       },
+//       {
+//         headers: {
+//           'Content-Type': 'application/json',
+//         }
+//       }
+//     );
+
+//     const resultText = response.data.response;
+
+//     // Extract question text using RegEx
+//     const qaPairs = resultText.split(/Q\d+:/).slice(1).map((block) => {
+//       return {
+//         question: block.trim(),
+//         answer: "", // Initial response only includes question
+//       };
+//     });
+
+//     return qaPairs;
+//   } catch (error) {
+//     console.error('Error fetching theoretical questions from local LLaMA:', error?.response?.data || error.message);
+//     throw error;
+//   }
+// };
+
+export const fetchQuestions = async (answer, skill, API_KEY, sessionId) => {
   try {
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
       {
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        model: 'shisa-ai/shisa-v2-llama3.3-70b:free',
         messages: [
           {
 //             Format:
@@ -61,10 +122,12 @@ export const fetchQuestions = async (answer, skill, API_KEY) => {
 
             role: 'user',
             content: `You're an AI interviewer assessing a candidate based on a provided list of skills  ${skill}.
- 
+ Initially check for session id ${sessionId} if it matches previous prompt session id give next question by analysing the answer if it is not matched create new conversation.
 1. Start with the first skill in the list.
 2. Ask an **easy** level question from that skill.
-3. After receiving the applicant’s answer ${answer}, evaluate the depth and correctness:
+3. After receiving the applicant’s answer, evaluate the depth and correctness:
+   - evaluate ${answer} this and ask next question as stated below
+   - give only one question at a time and wait until you get answer to give second question
    - If the answer is good → ask a **medium** level question from the same skill.
    - If the medium-level answer is good → proceed to a **hard** level question.
    - If any answer is weak or incorrect → either:
@@ -76,13 +139,14 @@ export const fetchQuestions = async (answer, skill, API_KEY) => {
 7. generate different types of questions dont stick with one question
 8. Consider the total questions should be asked atmost of 15
 9. Divide the questions based on the number of skills given
+10. Dont give the suggestions of how many questions you are asking
  
  Format:
  Q1: <your question>
 
 Skill List: ${skill}
 
-`,
+`
           },
         ],
       },
@@ -95,17 +159,19 @@ Skill List: ${skill}
     );
 
     const resultText = response.data.choices[0].message.content;
+console.log(resultText);
 
-    // Extract each Q&A pair using RegEx
-    const qaPairs = resultText.split(/Q\d+:/).slice(1).map(block => {
-      const [questionPart, ...answerParts] = block.split('Answer:');
-      return {
-        question: questionPart.trim(),
-        answer: answerParts.join('Answer:').trim(),
-      };
-    });
+// Extract questions using robust regex
+const questions = resultText.match(/Q\d+(?:\s*\(.*?\))?:\s.*?(?=(?:\n|$))/g) || resultText.match(/Q\d+:\s*(.*?)(?=\(\*|$)/gs) 
+                  || resultText.match(/\*\*Q\d+.*?\*\*:\s*(.*)/s) || [];
 
-    return qaPairs;
+const qaPairs = questions.map((qText, index) => ({
+  question: qText.replace(/\*\*/g, '').trim(),  
+  answer: '', 
+}));
+
+return qaPairs;
+
   } catch (error) {
     console.error('Error fetching theoretical questions from LLaMA:', error?.response?.data || error.message);
     throw error;
@@ -113,7 +179,8 @@ Skill List: ${skill}
 };
 
 
-export const analyzeAnswers = async (answers, API_KEY) => {
+
+export const analyzeAnswers = async (answers) => {
   const formatted = answers
     .map((ans, i) => `Q${i + 1}: ${ans.question}\nA${i + 1}: ${ans.answer}`)
     .join('\n\n');
@@ -140,7 +207,7 @@ ${formatted}`;
     },
     {
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        // 'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json'
       }
     }

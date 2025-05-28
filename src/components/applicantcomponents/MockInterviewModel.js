@@ -7,6 +7,9 @@ const Modal = ({ onClose, onStart }) => {
     const [userData, setUserData] = useState(null);
     const [isMobileView, setIsMobileView] = useState(window.innerWidth < 755);
 
+    function generateSessionId  (){
+  return crypto.randomUUID();
+}
 
     const linkStyle = {
         backgroundColor: '#F97316',
@@ -64,12 +67,12 @@ const Modal = ({ onClose, onStart }) => {
                         className={isMobileView ? 'bg-light p-3 rounded w-100' : ''}
                         style={
                             isMobileView
-                                ? {}
+                                ? {textAlign: 'left',}
                                 : {
                                     backgroundColor: '#F9F9F9',
                                     borderRadius: '10px',
                                     padding: '10px',
-                                    textAlign: 'left',
+                                    textAlign: 'justify',
                                     fontFamily: 'Plus Jakarta Sans',
                                     display: 'flex',
                                     width: 'auto',
