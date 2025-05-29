@@ -79,11 +79,16 @@ const skillImages = {
 
      return (
     <div className="d-flex flex-column align-items-center border rounded p-3 h-100">
-      <img
+      <img               
+                    style={{
+                      width: '40%', 
+                      height: '40%', 
+                      marginRight: '8px' 
+                    }}
         src={skillImage}
         alt={skillName}
-        className="img-fluid border"
-        style={{ width: '60px', height: '60px' }}
+       
+       
       />
       <p className="mt-2 mb-0 text-center">{skillName}</p>
     </div>
@@ -111,7 +116,7 @@ const MockInterviewByAi = () => {
   const audioChunks = useRef([]);
   const [audioURL, setAudioURL] = useState(null);
   const lastQuestion = 3;
-  const [firstQuestion, setFirstQuestion] = useState(true);
+  const [history, setHistory] = useState([]);
   const [sessionId, setSessionId] = useState();
   const [questionNumber, setQuestionNumber] = useState();
   const [transcript, setTranscript] = useState('');
@@ -323,6 +328,8 @@ const [snackbars, setSnackbars] = useState([]);
         setSkills(combined);
         if (skills)
           setLoading(false);
+        const updatedHistory = [...history, {skills}];
+        setHistory(updatedHistory);
       } catch (error) {
         console.error("Failed to fetch skill badges:", error);
       }
@@ -334,7 +341,8 @@ const [snackbars, setSnackbars] = useState([]);
     window.open("https://www.hackerrank.com/bitlabs-1747748513", "_blank");
   }
 
-  const handleSkillFetch = async () => {
+  const handleSkillQuestionFetch = async (inputValue) => {
+    // const currentAnswer = inputValue;
     setAnswers(inputValue);
     setModalOpen(false);
     setLoading(true);
@@ -342,9 +350,14 @@ const [snackbars, setSnackbars] = useState([]);
     setMicClicked();
     try {
       
-      const result = await fetchQuestions(answers, skills,  API_KEY, sessionId);
+      const result = await fetchQuestions(skills, API_KEY, history, inputValue);
       setHomePage(false);
       setQuestions(result);
+      console.log(questions);
+      const updatedHistory = [...history, {result, inputValue}];
+      console.log(updatedHistory);
+      setHistory(updatedHistory);
+      console.log(history);
       setInputValue('');
       setLoading(false);
     } catch (err) {
@@ -377,7 +390,7 @@ const payload = {
       setSessionId(data.sessionId);
       setHomePage(false);
       setLoading(false);
-      if (result) setFirstQuestion(false);
+     
 
     } catch (err) {
       console.error("Failed to load questions", err);
@@ -420,7 +433,6 @@ const payload = {
       setHomePage(false);
       setLoading(false);
       setInputValue('');
-      if (result) setFirstQuestion(false);
       if(data.completed){
         
         setAnalysis(data);
@@ -479,8 +491,6 @@ setAnalysisShown(true);
     setHomePage(false);
       setLoading(false);
       setInputValue('');
-    // if(result) setFirstQuestion(false);
-
     } catch (err) {
       console.error("Failed to load analysis", err);
       setQuestions([]);
@@ -514,6 +524,7 @@ setAnalysisShown(true);
     setInputValue('');
     setAudioStatus(false);
     setMicClicked(false);
+    setHistory([]);
   }
 
   return (
@@ -649,7 +660,7 @@ setAnalysisShown(true);
                                 <Link
                                   className="button-link1"
                                   style={linkStyle}
-                                  onClick={handleModal}
+                                  // onClick={handleModal}
                                   // onClick={handleQuestionFetch}
                                 >
                                   <span className="button button-custom" style={spanStyle}>Start</span>
@@ -680,7 +691,7 @@ setAnalysisShown(true);
                           <div style={{ marginBottom: '30px' }}>
                             <div>
                                 {/* <h4>{questions[currentIndex].question}</h4>*/}
-                            <h4> {questions.question} </h4> 
+                            <h4>{questions.questionNumber}. {questions.question} </h4> 
                               {!micClicked ? (
                                 <textarea
                                   rows={4}
@@ -703,7 +714,8 @@ setAnalysisShown(true);
                                 {micClicked ? <FaKeyboard size={24} color="#333" /> : <FiMic size={24} color="#333" />}
                               </span>
                               <Link className="button-link1" style={linkStyle}
-                                onClick={ handleAdaptiveQuestionFetch}
+                                // onClick={ handleAdaptiveQuestionFetch}
+                                onClick={ handleSkillQuestionFetch(inputValue)}
                                 // questionNumber === lastQuestion ? handleSubmitAll :
                                 //  onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}
                                   // onClick={handleSkillFetch}
@@ -758,7 +770,8 @@ setAnalysisShown(true);
           </div>
         </div>
       )}
-      {isModalOpen && <Modal onClose={handleCloseModal} onStart={handleQuestionFetch} />}
+      {/* {isModalOpen && <Modal onClose={handleCloseModal} onStart={handleQuestionFetch} />} */}
+      {isModalOpen && <Modal onClose={handleCloseModal} onStart={handleSkillQuestionFetch} />}
       {!homePage && questionsShown && (
         <div>
           <video

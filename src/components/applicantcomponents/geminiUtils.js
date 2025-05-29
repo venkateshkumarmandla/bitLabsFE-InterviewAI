@@ -62,7 +62,7 @@ import axios from 'axios';
 //   }
 // };
 
-export const fetchQuestions = async (answer, skill, API_KEY, sessionId) => {
+export const fetchQuestions = async (skill, API_KEY, history, inputValue) => {
   try {
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
@@ -121,33 +121,44 @@ export const fetchQuestions = async (answer, skill, API_KEY, sessionId) => {
 
 
             role: 'user',
-            content: `You're an AI interviewer assessing a candidate based on a provided list of skills  ${skill}.
- Initially check for session id ${sessionId} if it matches previous prompt session id give next question by analysing the answer if it is not matched create new conversation.
-1. Start with the first skill in the list.
-2. Ask an **easy** level question from that skill.
-3. After receiving the applicant’s answer, evaluate the depth and correctness:
-   - evaluate ${answer} this and ask next question as stated below
-   - give only one question at a time and wait until you get answer to give second question
-   - If the answer is good → ask a **medium** level question from the same skill.
-   - If the medium-level answer is good → proceed to a **hard** level question.
-   - If any answer is weak or incorrect → either:
-     - Ask a simpler question, or
-     - Skip to the next skill if they say **"I don’t know"** or clearly lack knowledge.
-4. Repeat this process for each skill.
-5. Ask **only one question at a time**, wait for the applicant’s answer before proceeding.
-6. Your goal is to **assess proficiency and depth of knowledge** skill-by-skill in a conversational way.
-7. generate different types of questions dont stick with one question
-8. Consider the total questions should be asked atmost of 15
-9. Divide the questions based on the number of skills given
-10. Dont give the suggestions of how many questions you are asking
- 
- Format:
- Q1: <your question>
+            content: `You're an AI interviewer evaluating a candidate based on a given list of skills: ${skill}.
 
-Skill List: ${skill}
+Your role is to:
+1. Review the entire **interview history** provided below. Do NOT repeat previously asked questions.
+2. Evaluate ONLY the **most recent answer** ${inputValue} :
+   - If the answer is **correct and shows understanding**, ask a more difficult question from the same skill.
+   - If the answer is **incorrect**, **"I don’t know"**, **blank**, or **irrelevant**, move to the next skill or ask a simpler question from the same skill.
+   - Do NOT assume correctness if the answer is empty or unrelated.
+3. Ask a maximum of 15 questions in total, evenly across all skills.
+4. Ensure the next question is different in type and scope — don’t repeat similar patterns.
+5. If 15 questions are complete or all skills are covered, return:
+   - "completionStatus": true
+   - An appropriate "overallFeedback" summarizing the candidate’s performance.
+6. Until then, return:
+   - "completionStatus": false
+   - An empty "overallFeedback".
 
+Interview History:
+${JSON.stringify(history)}
+
+📌 Rules:
+- Return only **1 new question** at a time.
+- Always evaluate the **latest answer honestly**.
+- If the answer is missing or non-relevant, don't fake analysis — be truthful and move to the next skill or simplify.
+- Do NOT repeat questions.
+
+⚠️ Your response must be a **raw JSON object** (no markdown, no labels, no extra text):
+
+🧠 JSON Response Format:
+{
+  "questionNumber": "<The next question number>",
+  "question": "<Your next appropriate question>",
+  "analysis": "<Genuine analysis of the applicant’s most recent answer>",
+  "completionStatus": <true | false>,
+  "overallFeedback": "<Summary if interview is over, else empty string>"
+}
 `
-          },
+ },
         ],
       },
       {
@@ -158,19 +169,28 @@ Skill List: ${skill}
       }
     );
 
-    const resultText = response.data.choices[0].message.content;
+   const resultText = response.data.choices[0].message.content;
 console.log(resultText);
 
-// Extract questions using robust regex
-const questions = resultText.match(/Q\d+(?:\s*\(.*?\))?:\s.*?(?=(?:\n|$))/g) || resultText.match(/Q\d+:\s*(.*?)(?=\(\*|$)/gs) 
-                  || resultText.match(/\*\*Q\d+.*?\*\*:\s*(.*)/s) || [];
+let parsedResult;
+try {
+  // Remove any leading/trailing whitespace or accidental code block markers
+  const cleaned = resultText.trim().replace(/^```(?:json)?|```$/g, '').trim();
 
-const qaPairs = questions.map((qText, index) => ({
-  question: qText.replace(/\*\*/g, '').trim(),  
-  answer: '', 
-}));
+  parsedResult = JSON.parse(cleaned);
 
-return qaPairs;
+  // Example: setQuestion(parsedResult.question); or whatever you do with it
+  console.log("Parsed Question:", parsedResult.question);
+  console.log("Answer Analysis:", parsedResult.analysis);
+  console.log("Completion Status:", parsedResult.completionStatus);
+  console.log("Overall Feedback:", parsedResult.overallFeedback);
+} catch (error) {
+  console.error("❌ Failed to parse JSON:", error);
+  console.error("Raw Response Text:", resultText);
+}
+
+
+return parsedResult;
 
   } catch (error) {
     console.error('Error fetching theoretical questions from LLaMA:', error?.response?.data || error.message);
