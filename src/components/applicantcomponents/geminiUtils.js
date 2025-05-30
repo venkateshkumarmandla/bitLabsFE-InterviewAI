@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { GoogleGenAI } from "@google/genai";
 
 // Function to fetch questions based on skill
 // export const fetchQuestions = async (answer, skill) => {
@@ -121,43 +122,41 @@ export const fetchQuestions = async (skill, API_KEY, history, inputValue) => {
 
 
             role: 'user',
-            content: `You're an AI interviewer evaluating a candidate based on a given list of skills: ${skill}.
+            content: `You are an AI interviewer assessing a fresher based on these skills: ${skill}.
 
-Your role is to:
-1. Review the entire **interview history** provided below. Do NOT repeat previously asked questions.
-2. Evaluate ONLY the **most recent answer** ${inputValue} :
-   - If the answer is **correct and shows understanding**, ask a more difficult question from the same skill.
-   - If the answer is **incorrect**, **"I don’t know"**, **blank**, or **irrelevant**, move to the next skill or ask a simpler question from the same skill.
-   - Do NOT assume correctness if the answer is empty or unrelated.
-3. Ask a maximum of 15 questions in total, evenly across all skills.
-4. Ensure the next question is different in type and scope — don’t repeat similar patterns.
-5. If 15 questions are complete or all skills are covered, return:
+Your tasks:
+1. Review the full **interview history** below. Do NOT repeat questions.
+2. Evaluate only the **latest answer**: "${inputValue}"
+   - Start with an **easy, practical conceptual** question for each skill.
+   - Generate a basic conceptual question that tests deep understanding without requiring code writing or theoretical definitions.
+   - Ask atmost of 4 questions per skill.
+   - Ask one skill at a time move to next if it is completed and dont ask questions based on that skill again
+   - Do NOT ask any code-writing or syntax-based questions.
+   - If the answer shows understanding, ask a deeper conceptual question in the same skill.
+   - If the answer is wrong, blank, or irrelevant, switch to the next skill.
+   - Dont missunderstood for blank or I dont know response as correct answers at that case move to next skill.
+   - End the test if there is at most of non related answers to the question for eaxh skill.
+3. Ask diverse, non-repetitive questions until all skills are covered.
+4. When done, return:
    - "completionStatus": true
-   - An appropriate "overallFeedback" summarizing the candidate’s performance.
-6. Until then, return:
+   - An "overallFeedback" summary.
+5. Otherwise, return:
    - "completionStatus": false
-   - An empty "overallFeedback".
+   - Leave "overallFeedback" empty.
 
 Interview History:
 ${JSON.stringify(history)}
 
-📌 Rules:
-- Return only **1 new question** at a time.
-- Always evaluate the **latest answer honestly**.
-- If the answer is missing or non-relevant, don't fake analysis — be truthful and move to the next skill or simplify.
-- Do NOT repeat questions.
-
-⚠️ Your response must be a **raw JSON object** (no markdown, no labels, no extra text):
-
-🧠 JSON Response Format:
+strictly Return only 1 JSON object dont give extra information rather than JSON:
 {
-  "questionNumber": "<The next question number>",
-  "question": "<Your next appropriate question>",
-  "analysis": "<Genuine analysis of the applicant’s most recent answer>",
+  "questionNumber": "<Next question number>",
+  "question": "<Next practical conceptual question>",
+  "analysis": "<Evaluation of the latest answer>",
   "completionStatus": <true | false>,
-  "overallFeedback": "<Summary if interview is over, else empty string>"
-}
-`
+  "overallFeedback": "<Summary if done, else empty>"
+}`
+
+
  },
         ],
       },
@@ -197,6 +196,77 @@ return parsedResult;
     throw error;
   }
 };
+
+// export const fetchQuestions = async (skill, API_KEY, history, inputValue) => {
+//   try {
+//     const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+//     const prompt = `You are an AI interviewer assessing a fresher based on these skills: ${skill}.
+
+// Your tasks:
+// 1. Review the full **interview history** below. Do NOT repeat questions.
+// 2. Evaluate only the **latest answer**: "${inputValue}"
+//    - Start with an **easy, practical conceptual** question for each skill.
+//    - Generate a basic conceptual question that tests deep understanding without requiring code writing or theoretical definitions.
+//    - Ask at most 4 questions per skill.
+//    - Ask one skill at a time move to next if it is completed and dont ask questions based on that skill again
+//    - Do NOT ask any code-writing or syntax-based questions.
+//    - If the answer shows understanding, ask a deeper conceptual question in the same skill.
+//    - If the answer is wrong, blank, or irrelevant, switch to the next skill.
+//    - Dont misunderstand blank or I don't know responses as correct answers, at that case move to next skill.
+//    - End the test if there is at most of non related answers to the question for each skill.
+// 3. Ask diverse, non-repetitive questions until all skills are covered.
+// 4. When done, return:
+//    - "completionStatus": true
+//    - An "overallFeedback" summary.
+// 5. Otherwise, return:
+//    - "completionStatus": false
+//    - Leave "overallFeedback" empty.
+
+// Interview History:
+// ${JSON.stringify(history)}
+
+// strictly Return only 1 JSON object dont give extra information rather than JSON:
+// {
+//   "questionNumber": "<Next question number>",
+//   "question": "<Next practical conceptual question>",
+//   "analysis": "<Evaluation of the latest answer>",
+//   "completionStatus": <true | false>,
+//   "overallFeedback": "<Summary if done, else empty>"
+// }`;
+
+//     const response = await ai.models.generateContent({
+//       model: 'text-bison-001',
+//       contents: [{ text: prompt }],
+//     });
+
+//     // For Google GenAI, the response structure is usually:
+//     // response[0].candidates[0].content
+//    const resultText = response.choices[0].message.content;
+
+//     let parsedResult;
+//     try {
+//       const cleaned = resultText.trim().replace(/^```(?:json)?|```$/g, '').trim();
+//       parsedResult = JSON.parse(cleaned);
+
+//       console.log("Parsed Question:", parsedResult.question);
+//       console.log("Answer Analysis:", parsedResult.analysis);
+//       console.log("Completion Status:", parsedResult.completionStatus);
+//       console.log("Overall Feedback:", parsedResult.overallFeedback);
+
+//     } catch (error) {
+//       console.error("❌ Failed to parse JSON:", error);
+//       console.error("Raw Response Text:", resultText);
+//     }
+
+//     return parsedResult;
+
+//   } catch (error) {
+//     console.error('Error fetching questions:', error?.response?.data || error.message);
+//     throw error;
+//   }
+// };
+
 
 
 

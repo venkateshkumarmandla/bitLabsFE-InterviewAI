@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useUserContext } from '../common/UserProvider';
 import axios from 'axios';
 import { apiUrl } from '../../services/ApplicantAPIService';
@@ -341,16 +341,16 @@ const [snackbars, setSnackbars] = useState([]);
     window.open("https://www.hackerrank.com/bitlabs-1747748513", "_blank");
   }
 
-  const handleSkillQuestionFetch = async (inputValue) => {
-    // const currentAnswer = inputValue;
-    setAnswers(inputValue);
+  const handleSkillQuestionFetch = useCallback( async(currentValue) => {
+    const currentAnswer = currentValue;
+    setAnswers(currentAnswer);
     setModalOpen(false);
     setLoading(true);
     setAudioStatus(false);
     setMicClicked();
     try {
       
-      const result = await fetchQuestions(skills, API_KEY, history, inputValue);
+      const result = await fetchQuestions(skills, API_KEY, history, currentAnswer);
       setHomePage(false);
       setQuestions(result);
       console.log(questions);
@@ -360,11 +360,16 @@ const [snackbars, setSnackbars] = useState([]);
       console.log(history);
       setInputValue('');
       setLoading(false);
+      if(result.completionStatus){
+        setAnalysis(result);
+          handleSubmit();
+      }
     } catch (err) {
       console.error("Failed to load questions", err);
       setQuestions([]);
     }
-  };
+  }, [history, inputValue]);
+
 
   const handleQuestionFetch = async () => {
      setModalOpen(false);
@@ -715,7 +720,7 @@ setAnalysisShown(true);
                               </span>
                               <Link className="button-link1" style={linkStyle}
                                 // onClick={ handleAdaptiveQuestionFetch}
-                                onClick={ handleSkillQuestionFetch(inputValue)}
+                                onClick={() => handleSkillQuestionFetch(inputValue)}
                                 // questionNumber === lastQuestion ? handleSubmitAll :
                                 //  onClick={currentIndex === questions.length - 1 ? handleSubmitAll : handleNext}
                                   // onClick={handleSkillFetch}
@@ -744,9 +749,9 @@ setAnalysisShown(true);
                             <p>{analysis.Analysis2}</p><br />
                             <p>Question 3</p>
                             <p>{analysis.Analysis3}</p><br /> */}
+                            {/* <p>{analysis.feedback}</p><br /> */}
                             <p>Overall Feedback</p>
-                            <p>{analysis.feedback}</p><br />
-                            {/* <p>{analysis.overallFeedback}</p><br /> */}
+                            <p>{analysis.overallFeedback}</p><br />
                             {/* <p>Score</p>
                             <p>{analysis.score}</p><br /> */}
 
