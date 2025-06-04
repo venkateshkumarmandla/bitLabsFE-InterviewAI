@@ -39,8 +39,6 @@ import mongodbPNG from '../../images/Icons1/Icons/Mongo DB.svg';
 import sqlServerPNG from '../../images/Icons1/Icons/SQL-Server.svg';
 import djangoPNG from '../../images/Icons1/Icons/Django.svg';
 import flaskPNG from '../../images/Icons1/Icons/Flask.png';
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-
 
 const SkillBadgeCard = ({ skillName }) => {
   const skillImages = {
@@ -116,19 +114,15 @@ const MockInterviewByAi = () => {
   const [audioURL, setAudioURL] = useState(null);
   const [history, setHistory] = useState([]);
   const [questionNumber, setQuestionNumber] = useState();
-  // const [transcript, setTranscript] = useState('');
+  const [transcript, setTranscript] = useState('');
   const [isModalOpen, setModalOpen] = useState(false);
   const videoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const streamRef = useRef(null);
   const audioStreamRef = useRef(null);
   const [snackbars, setSnackbars] = useState([]);
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition,
-  } = useSpeechRecognition();
+   const recognitionRef = useRef(null);
+const isListeningRef = useRef(false);
 
   const addSnackbar = (snackbar) => {
     setSnackbars((prevSnackbars) => [...prevSnackbars, snackbar]);
@@ -200,72 +194,25 @@ const MockInterviewByAi = () => {
   }, [questionsShown, homePage]);
 
 
-  // const startSpeechRecognition = () => {
-  //   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  //   if (!SpeechRecognition) {
-  //     console.error("Speech Recognition API not supported in this browser.");
-  //     return;
-  //   }
-
-  //   const recognition = new SpeechRecognition();
-  //   recognition.continuous = false;
-  //   recognition.interimResults = false;
-  //   recognition.lang = 'en-US';
-
-  //   recognition.onresult = (event) => {
-  //     const speechTranscript = event.results[0][0].transcript;
-  //     console.log(speechTranscript);
-  //     setTranscript(speechTranscript);
-  //     setInputValue(speechTranscript);
-  //   };
-
-  //   recognition.onerror = (event) => {
-  //     console.error("Speech recognition error:", event.error);
-  //   };
-
-  //   recognition.onend = () => {
-  //     console.log("Speech recognition ended.");
-  //   };
-
-  //   recognition.start();
-  // };
-
   const handleToggleInputMode = () => {
     setInputValue('');
     setMicClicked(prev => !prev);
   };
 
 
-  // const stopAudio = () => {
-  //   if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-  //     mediaRecorderRef.current.stop();
+const startAudio = async () => {
+    try {
+      if (audioStatus) {
+        stopAudio();
+        setAudioStatus(false);
+      } else {
+        // 1. Start mic stream
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioStreamRef.current = stream;
 
-  //     const stream = mediaRecorderRef.current.stream;
-  //     if (stream) {
-  //       const tracks = stream.getTracks();
-  //       tracks.forEach(track => track.stop());
-  //       console.log('Microphone access released.');
-  //     } else {
-  //       console.warn('No media stream found to stop.');
-  //     }
-  //     setAudioStatus(false);
-  //   }
-  // };
-
-  const startAudio = async () => {
-    try{
-      
-      if(audioStatus){
-        stopAudio(); 
-      setAudioStatus(false);
-      }else{
-        const stream = await navigator.mediaDevices.getUserMedia({audio: true});
-      audioStreamRef.current = stream;
-
-
-       const mediaRecorder = new MediaRecorder(stream);
+        // 2. Set up recording
+        const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
-
         audioChunksRef.current = [];
 
         mediaRecorder.ondataavailable = (event) => {
@@ -282,84 +229,96 @@ const MockInterviewByAi = () => {
 
         mediaRecorder.start();
 
+        // 3. Start transcription
+       
+          startListeningAudio();
+  
 
-         startListeningAudio();
-      setAudioStatus(true);
-      console.log('audio started');
+        setAudioStatus(true);
+        console.log('Audio started');
       }
+    } catch (error) {
+      console.warn('Audio start error:', error);
     }
-    catch(error){
-      console.warn("audio start error", error)
-    }
-  }
-
-  const startListeningAudio = () =>{
-    console.log("started translating");
-    SpeechRecognition.startListening({ continuous: true, interimResults: true })
-    console.log({transcript});
-  }
+  };
 
   const stopAudio = () => {
-    console.log('stop audio called')
-    try{
+    console.log('Stopping audio...');
+    try {
       stopListeningAudio();
-
- const mediaRecorder = mediaRecorderRef.current;
+setInputValue(transcript);
+      const mediaRecorder = mediaRecorderRef.current;
       if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
       }
 
-        const stream = audioStreamRef.current;
-         audioStreamRef.current = null;
-          stream.getTracks().forEach((tracks) => tracks.stop());
-          console.log('audio stopped');
-    }catch(error){
-      console.warn("audio stop error", error)
+      const stream = audioStreamRef.current;
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        audioStreamRef.current = null;
+      }
+
+      setAudioStatus(false);
+      console.log('Audio stopped');
+    } catch (error) {
+      console.warn('Audio stop error:', error);
     }
+  };
+
+ const startListeningAudio = () => {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    alert('Web Speech API not supported in this browser.');
+    return;
   }
 
-  const stopListeningAudio = () =>{
-    console.log('audio transalation stoped');
-SpeechRecognition.stopListening();
-console.log({transcript});
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+
+  recognition.lang = 'en-US';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = (event) => {
+    let interimTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      interimTranscript += event.results[i][0].transcript;
+    }
+    setTranscript(interimTranscript);
+  };
+
+  recognition.onerror = (e) => {
+    console.error('Speech recognition error:', e.error);
+  };
+
+  recognition.onend = () => {
+    console.log('Speech recognition ended');
+    if (isListeningRef.current) {
+      console.log('Restarting recognition...');
+      recognition.start(); // Restart if user hasn't stopped it
+    }
+  };
+
+  recognitionRef.current = recognition;
+  isListeningRef.current = true;
+  recognition.start();
+  console.log('Transcription started');
+};
+
+
+const stopListeningAudio = () => {
+  isListeningRef.current = false;
+  const recognition = recognitionRef.current;
+  if (recognition) {
+    recognition.stop();
+    recognitionRef.current = null;
+    console.log('Transcription stopped manually');
   }
-    useEffect(() => {
+};
+
+  // Log transcript updates
+  useEffect(() => {
     console.log('Transcript:', transcript);
   }, [transcript]);
-
-
-
-
-  // const handleRecording = async () => {
-  //   if (!audioStatus) {
-  //     try {
-  //       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  //       mediaRecorderRef.current = new MediaRecorder(stream);
-  //       audioChunks.current = [];
-
-  //       mediaRecorderRef.current.ondataavailable = (e) => {
-  //         audioChunks.current.push(e.data);
-  //       };
-
-  //       mediaRecorderRef.current.onstop = () => {
-  //         const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-  //         console.log('Recorded audio blob:', audioBlob);
-  //         const url = URL.createObjectURL(audioBlob);
-  //         setAudioURL(url);
-
-  //       };
-
-  //       mediaRecorderRef.current.start();
-  //       console.log('Recording started...');
-  //       setAudioStatus(true);
-  //       setMicClicked(true);
-  //     } catch (err) {
-  //       console.error('Microphone access denied:', err);
-  //     }
-  //   } else {
-  //     stopAudio();
-  //   }
-  // };
 
   const linkStyle = {
     backgroundColor: '#F97316',
@@ -504,9 +463,9 @@ console.log({transcript});
       // Add the last answered question + answer to history BEFORE sending
       // This means history should store all previous Q&A
       const lastQA = {
-        questionNumber: questionNumber,   // questionNumber of last asked question
-        question: questions.question,     // current question text
-        userAnswer: inputValue,           // answer user gave
+        questionNumber: questionNumber || '',   // questionNumber of last asked question
+        question: questions?.question || '',     // current question text
+        userAnswer: inputValue || '',           // answer user gave
         analysis: analysis || ''          // optionally keep AI's evaluation
       };
       console.log(lastQA);
@@ -535,7 +494,11 @@ console.log({transcript});
 
       // Set the new question from response
       setQuestions(data);
+      setAnalysis(data)
       console.log(data);
+      console.log(data.question)
+      console.log(data.analysis)
+      console.log(data.questionNumber)
 
       // Update question number
       setQuestionNumber(data.questionNumber);
@@ -561,15 +524,15 @@ console.log({transcript});
 
 
   const handleSubmit = async () => {
+    setQuestionNumber('');
+     setHistory([]);
     setLoading(false);
     setHomePage(false);
     setQuestionsShown(false);
-    setAnalysisShown(true);
-    setHistory([]);
+    setAnalysisShown(true);    
   }
 
   const handleSubmitAll = async () => {
-    // stopAudio();
     setAudioStatus(false);
     setMicClicked(false);
     setLoading(true);
@@ -611,21 +574,10 @@ console.log({transcript});
     setQuestions([]);
   };
 
-  const handleNext = () => {
-    // stopAudio();
-    setAudioStatus(false);
-    setMicClicked(false);
-    const updatedAnswers = [...answers];
-    updatedAnswers[currentIndex] = {
-      question: questions[currentIndex].question,
-      answer: inputValue
-    };
-    setAnswers(updatedAnswers);
-    setInputValue('');
-    setCurrentIndex(currentIndex + 1);
-  };
 
   const handleBackButton = () => {
+    setQuestionNumber('');
+    setAnalysis('');
     setHomePage(true);
     setQuestionsShown(true);
     setAnalysisShown(false);
@@ -636,9 +588,7 @@ console.log({transcript});
     setMicClicked(false);
     setHistory([]);
   }
-  if (!browserSupportsSpeechRecognition) {
-    return <p>Your browser doesn't support speech recognition.</p>;
-  }
+  
   return (
     <>
       {loading ? <div className="spinner-container">
@@ -818,7 +768,8 @@ console.log({transcript});
                                   (<span style={{ marginLeft: '10px' }}>Recording...  </span>
 
                                   )}
-                                  <strong>Status:</strong> {listening ? `Listening... ${transcript}` : 'Stopped'}</>
+                                  {/* <strong>Status:</strong> {listening ? `Listening... ${transcript}` : 'Stopped'} */}
+                                  </>
                               )
                               }
                             </div>
@@ -829,8 +780,8 @@ console.log({transcript});
                               </span>
                               <Link className="button-link1" style={linkStyle}
 
-                                onClick={() => handleSkillQuestionFetch(inputValue)}
-                              // onClick={() => handleQuestionFetch()}
+                                // onClick={() => handleSkillQuestionFetch(inputValue)}
+                              onClick={() => handleQuestionFetch()}
 
                               >
                                 <span className="button button-custom" style={spanStyle}>
@@ -882,8 +833,8 @@ console.log({transcript});
           </div>
         </div>
       )}
-      {/* {isModalOpen && <Modal onClose={() => {handleCloseModal(); setHistory([])}} onStart={() => {handleQuestionFetch(); setHistory([])}} />} */}
-      {isModalOpen && <Modal onClose={handleCloseModal} onStart={handleSkillQuestionFetch} />}
+      {isModalOpen && <Modal onClose={() => {handleCloseModal(); setHistory([])}} onStart={handleQuestionFetch} />}
+      {/* {isModalOpen && <Modal onClose={handleCloseModal} onStart={handleSkillQuestionFetch} />} */}
       {!homePage && questionsShown && (
         <div>
           <video

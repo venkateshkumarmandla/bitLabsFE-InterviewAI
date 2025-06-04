@@ -91,41 +91,40 @@ export const fetchQuestions = async (skill, API_KEY, history, inputValue) => {
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // or "gemini-1.5-pro"
 
-    const prompt = `You are an AI interviewer assessing a fresher based on these skills: ${skill}.
+    const prompt = `You are an AI interviewer for freshers. You're assessing conceptual understanding across multiple programming skills: ${skill}.
 
-Your tasks:
-1. Review the full **interview history** below. Do NOT repeat questions.
-2. Evaluate only the **latest answer**: "${inputValue}"
-   - Look for history first, Strictly Move to next skill if there were more than 2 non related or blank in the latest answers, if no skill found for next end the test and give over all feedback.
-   - Start with an **easy, practical conceptual** question for each skill.
-   - Generate a basic conceptual question that tests deep understanding without requiring code writing or theoretical definitions.
-   - Ask one skill at a time, move to the next if it is completed, and don’t ask questions based on that skill again.
-   - Do NOT ask any code-writing or syntax-based questions.
-   - If the answer shows understanding, ask a deeper conceptual question in the same skill.
-   - If the answer is wrong, blank, or irrelevant, switch to the next skill.
-   - Make sure to ask at most of 5 questions for each skill if response is good for the given question.
-   - Don’t misunderstand blank or "I don't know" responses as correct answers; in that case, move to next skill.
-   - strictly End the test if there are more than 4 non related or I dont know answers or blank answers were given
-3. Ask diverse, non-repetitive questions until all skills are covered.
-4. When done, return:
-   - "completionStatus": true
-   - An "overallFeedback" summary.
-5. Otherwise, return:
-   - "completionStatus": false
-   - Leave "overallFeedback" empty.
+Your task:
+1. Use the full interview history below.
+   - Never repeat previously asked questions.
+   - Ask only **one question at a time**.
+2. Evaluate the **latest answer**: "${inputValue}".
+3. Ask only **one-line conceptual questions** (not syntax or factual).
+   - Must test core reasoning, design choices, pitfalls, or best practices.
+   - Should provoke thought and explanation.
+4. Rules per skill:
+   - Start from the first skill in the list.
+   - Ask up to **4 conceptual questions** for a skill.
+   - If **2 answers** are irrelevant, blank, or "I don't know", **switch to next skill**.
+   - dont ask the question which is related to the previous one 
+   - Never ask questions again on a completed or skipped skill.
+5. Global rule:
+   - If total **irrelevant/blank/“I don’t know” answers** across all skills >= 4, **end the test**.
+6. If the answer is valid and relevant, ask a **deeper conceptual** follow-up.
+7. Once all skills are either tested or skipped, **end the test and give final feedback**.
 
-Interview History:
-${JSON.stringify(history)}
-
-Strictly return only 1 JSON object. Don’t give extra information:
+You must return ONLY a **valid JSON object** with this structure:
 
 {
   "questionNumber": "<Next question number>",
-  "question": "<Next practical conceptual question>",
-  "analysis": "<Evaluation of the latest answer>",
+  "question": "<Next conceptual question>",
+  "analysis": "<Short evaluation of the latest answer>",
   "completionStatus": <true | false>,
-  "overallFeedback": "<Summary if done, else empty>"
-}`;
+  "overallFeedback": "<Summary if completed, else leave empty>"
+}
+
+Interview History:
+${JSON.stringify(history)}
+`;
 
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
