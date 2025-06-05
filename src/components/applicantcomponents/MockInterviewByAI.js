@@ -12,85 +12,6 @@ import { FiMic } from 'react-icons/fi';
 import { FaKeyboard } from 'react-icons/fa';
 import Modal from './MockInterviewModel'
 import Snackbar from '../common/Snackbar';
-import javaPNG from '../../images/Icons1/Icons/Java.svg';
-import htmlPNG from '../../images/Icons1/Icons/HTML.svg';
-import cssPNG from '../../images/Icons1/Icons/CSS.svg';
-import mysqlPNG from '../../images/Icons1/Icons/MySQL.svg';
-import angularPNG from '../../images/Icons1/Icons/Angular.svg';
-import reactPNG from '../../images/Icons1/Icons/React.svg';
-import manualTestingPNG from '../../images/Icons1/Icons/Manual Testing.svg';
-import sqlPNG from '../../images/Icons1/Icons/SQL.svg';
-import jspPNG from '../../images/Icons1/Icons/JSP.svg';
-import cPlusPlusPNG from '../../images/Icons1/Icons/CPlusPlus.svg';
-import paythonPNG from '../../images/Icons1/Icons/Python.svg';
-import regressionPNG from '../../images/Icons1/Icons/Regression Testing.svg';
-import hibernatePNG from '../../images/Icons1/Icons/Hibernate.svg';
-import netPNG from '../../images/Icons1/Icons/Dot Net.svg';
-import servletsPNG from '../../images/Icons1/Icons/Servlets.svg';
-import typeScriptPNG from '../../images/Icons1/Icons/TypeScript.svg';
-import cSharpPNG from '../../images/Icons1/Icons/C Sharp.svg';
-import cPNG from '../../images/Icons1/Icons/C.svg';
-import seleniumPNG from '../../images/Icons1/Icons/Selenium.svg';
-import javaScriptPNG from '../../images/Icons1/Icons/JavaScript.svg';
-import springPNG from '../../images/Icons1/Icons/Spring.svg';
-import springBootPNG from '../../images/Icons1/Icons/Spring Boot.svg';
-import vuePNG from '../../images/Icons1/Icons/Vue.svg';
-import mongodbPNG from '../../images/Icons1/Icons/Mongo DB.svg';
-import sqlServerPNG from '../../images/Icons1/Icons/SQL-Server.svg';
-import djangoPNG from '../../images/Icons1/Icons/Django.svg';
-import flaskPNG from '../../images/Icons1/Icons/Flask.png';
-
-const SkillBadgeCard = ({ skillName }) => {
-  const skillImages = {
-    'JAVA': javaPNG,
-    'HTML': htmlPNG,
-    'CSS': cssPNG,
-    'Python': paythonPNG,
-    'MySQL': mysqlPNG,
-    'Angular': angularPNG,
-    'React': reactPNG,
-    'Manual Testing': manualTestingPNG,
-    "SQL": sqlPNG,
-    "JSP": jspPNG,
-    "C++": cPlusPlusPNG,
-    "Regression Testing": regressionPNG,
-    "Hibernate": hibernatePNG,
-    ".Net": netPNG,
-    "Servlets": servletsPNG,
-    "TypeScript": typeScriptPNG,
-    "C Sharp": cSharpPNG,
-    "C": cPNG,
-    "Selenium": seleniumPNG,
-    "JavaScript": javaScriptPNG,
-    "Spring": springPNG,
-    "Spring Boot": springBootPNG,
-    "Vue": vuePNG,
-    "Mongo DB": mongodbPNG,
-    "SQL-Server": sqlServerPNG,
-    "Django": djangoPNG,
-    "Flask": flaskPNG,
-    // Add other skills here...
-  };
-
-  const skillImage = skillImages[skillName] || javaPNG;
-
-  return (
-    <div className="d-flex flex-column align-items-center border rounded p-3 h-100">
-      <img
-        style={{
-          width: '40%',
-          height: '40%',
-          marginRight: '8px'
-        }}
-        src={skillImage}
-        alt={skillName}
-
-
-      />
-      <p className="mt-2 mb-0 text-center">{skillName}</p>
-    </div>
-  );
-}
 
 
 const MockInterviewByAi = () => {
@@ -98,7 +19,6 @@ const MockInterviewByAi = () => {
   const userId = user.id;
   const [skills, setSkills] = useState([]);
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [inputValue, setInputValue] = useState('');
   const [analysis, setAnalysis] = useState(null);
@@ -150,7 +70,6 @@ const isListeningRef = useRef(false);
           videoRef.current.srcObject = stream;
         }
 
-        // Setup a dummy peer connection to lock and unlock the stream properly
         peerConnectionRef.current = new RTCPeerConnection();
         stream.getTracks().forEach(track => {
           peerConnectionRef.current.addTrack(track, stream);
@@ -209,7 +128,6 @@ const startAudio = async () => {
         // 1. Start mic stream
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         audioStreamRef.current = stream;
-
         // 2. Set up recording
         const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
@@ -228,12 +146,9 @@ const startAudio = async () => {
         };
 
         mediaRecorder.start();
-
         // 3. Start transcription
-       
           startListeningAudio();
   
-
         setAudioStatus(true);
         console.log('Audio started');
       }
@@ -257,7 +172,6 @@ setInputValue(transcript);
         stream.getTracks().forEach((track) => track.stop());
         audioStreamRef.current = null;
       }
-
       setAudioStatus(false);
       console.log('Audio stopped');
     } catch (error) {
@@ -265,7 +179,9 @@ setInputValue(transcript);
     }
   };
 
- const startListeningAudio = () => {
+let finalTranscriptArray = []; 
+
+const startListeningAudio = () => {
   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
     alert('Web Speech API not supported in this browser.');
     return;
@@ -274,16 +190,26 @@ setInputValue(transcript);
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
 
-  recognition.lang = 'en-US';
+  recognition.lang = 'en-IN';
   recognition.continuous = true;
   recognition.interimResults = true;
 
   recognition.onresult = (event) => {
     let interimTranscript = '';
+
     for (let i = event.resultIndex; i < event.results.length; i++) {
-      interimTranscript += event.results[i][0].transcript;
+      const transcriptChunk = event.results[i][0].transcript;
+
+      if (event.results[i].isFinal) {
+        finalTranscriptArray.push(transcriptChunk.trim());
+      } else {
+        interimTranscript += transcriptChunk;
+      }
     }
-    setTranscript(interimTranscript);
+
+    const fullTranscript = [...finalTranscriptArray, interimTranscript].join(' ');
+    setTranscript(fullTranscript);
+    setInputValue(fullTranscript);
   };
 
   recognition.onerror = (e) => {
@@ -303,7 +229,6 @@ setInputValue(transcript);
   recognition.start();
   console.log('Transcription started');
 };
-
 
 const stopListeningAudio = () => {
   isListeningRef.current = false;
@@ -373,34 +298,34 @@ const stopListeningAudio = () => {
     window.open("https://www.hackerrank.com/bitlabs-1747748513", "_blank");
   }
 
-  const handleSkillQuestionFetch = useCallback(async (currentValue) => {
-    const currentAnswer = currentValue;
-    setAnswers(currentAnswer);
-    setModalOpen(false);
-    setLoading(true);
-    setAudioStatus(false);
-    setMicClicked();
-    try {
+  // const handleSkillQuestionFetch = useCallback(async (currentValue) => {
+  //   const currentAnswer = currentValue;
+  //   setAnswers(currentAnswer);
+  //   setModalOpen(false);
+  //   setLoading(true);
+  //   setAudioStatus(false);
+  //   setMicClicked();
+  //   try {
 
-      const result = await fetchQuestions(skills, API_KEY, history, currentAnswer);
-      setHomePage(false);
-      setQuestions(result);
-      console.log(questions);
-      const updatedHistory = [...history, { result, inputValue }];
-      console.log(updatedHistory);
-      setHistory(updatedHistory);
-      console.log(history);
-      setInputValue('');
-      setLoading(false);
-      if (result.completionStatus) {
-        setAnalysis(result);
-        handleSubmit();
-      }
-    } catch (err) {
-      console.error("Failed to load questions", err);
-      setQuestions([]);
-    }
-  }, [history, inputValue]);
+  //     const result = await fetchQuestions(skills, API_KEY, history, currentAnswer);
+  //     setHomePage(false);
+  //     setQuestions(result);
+  //     console.log(questions);
+  //     const updatedHistory = [...history, { result, inputValue }];
+  //     console.log(updatedHistory);
+  //     setHistory(updatedHistory);
+  //     console.log(history);
+  //     setInputValue('');
+  //     setLoading(false);
+  //     if (result.completionStatus) {
+  //       setAnalysis(result);
+  //       handleSubmit();
+  //     }
+  //   } catch (err) {
+  //     console.error("Failed to load questions", err);
+  //     setQuestions([]);
+  //   }
+  // }, [history, inputValue]);
 
 
   //   const handleQuestionFetch = async () => {
@@ -460,25 +385,44 @@ const stopListeningAudio = () => {
     try {
       const jwtToken = localStorage.getItem("jwtToken");
 
-      // Add the last answered question + answer to history BEFORE sending
-      // This means history should store all previous Q&A
       const lastQA = {
-        questionNumber: questionNumber || '',   // questionNumber of last asked question
-        question: questions?.question || '',     // current question text
-        userAnswer: inputValue || '',           // answer user gave
-        analysis: analysis || ''          // optionally keep AI's evaluation
+        questionNumber: questionNumber || 0,   
+        question: questions?.question || null,     
+        // currentAnswer: inputValue || null,          
+        analysis : analysis  ,        
+       completionStatus : questions.completionStatus,
+        overallFeedback  : questions.overallFeedback || null,
+        skill : questions.skill || null,
+        currentDifficulty : questions.currentDifficulty,
+currentSkillIndex : questions.currentSkillIndex ,
+        currentSkillQuestionNumber : questions.currentSkillQuestionNumber || null
       };
+      const userAnser = {
+        currentAnswer : inputValue
+      }
       console.log(lastQA);
+      let updatedHistory;
+      console.log(lastQA.questionNumber);
+      if(lastQA.questionNumber !== 0){
+        console.log(30);
+        updatedHistory = [...history, lastQA, userAnser];
+        console.log(updatedHistory);
+      }
+      else{
+        updatedHistory = [];
+      }
+      console.log(history);
 
       // Append last QA to history
-      const updatedHistory = [...history, lastQA];
+      setMicClicked(false);
+      setInputValue('');
       setQuestionNumber('');
       const payload = {
         applicantId: userId,
         skills: skills,
         history: updatedHistory
       };
-
+      console.log(payload);
       // Send updated history to backend to get next question
       const result = await axios.post(`${apiUrl}/api/interview/next-question`, payload, {
         headers: {
@@ -488,24 +432,19 @@ const stopListeningAudio = () => {
       });
 
       const data = result.data;
-
+      console.log(data);
       // Update local history with updatedHistory from before, backend doesn't return full history
       setHistory(updatedHistory);
+      console.log(history);
 
       // Set the new question from response
       setQuestions(data);
-      setAnalysis(data)
-      console.log(data);
-      console.log(data.question)
-      console.log(data.analysis)
-      console.log(data.questionNumber)
-
+      console.log(questions.question);
+      setAnalysis(data.analysis)
       // Update question number
       setQuestionNumber(data.questionNumber);
-
       // Reset input for next answer
       setInputValue('');
-
       setHomePage(false);
       setLoading(false);
 
@@ -522,7 +461,6 @@ const stopListeningAudio = () => {
     }
   };
 
-
   const handleSubmit = async () => {
     setQuestionNumber('');
      setHistory([]);
@@ -531,49 +469,6 @@ const stopListeningAudio = () => {
     setQuestionsShown(false);
     setAnalysisShown(true);    
   }
-
-  const handleSubmitAll = async () => {
-    setAudioStatus(false);
-    setMicClicked(false);
-    setLoading(true);
-    setAnswers(inputValue);
-    console.log(answers);
-    try {
-      // const jwtToken = localStorage.getItem("jwtToken");
-      // const payload = {
-      //   sessionId: sessionId,
-      //   questionNumber: questionNumber, 
-      //   answer: inputValue
-      // };
-      // console.log(payload);
-
-      // const result = await axios.post(`${apiUrl}/api/interview/answer`, payload, {
-      //   headers: {
-      //     Authorization: `Bearer ${jwtToken}`,
-      //     'Content-Type': 'application/json'
-      //   }
-      // });
-      // const data = result.data;
-      // console.log(data);
-      // setAnalysis(questions);
-      console.log(analysis);
-      // setQuestions(data);
-      // setQuestionNumber(data.nextQuestionNumber);
-      // console.log(questionNumber);
-      // setSessionId(data.sessionId);
-      setHomePage(false);
-      setLoading(false);
-      setInputValue('');
-    } catch (err) {
-      console.error("Failed to load analysis", err);
-      setQuestions([]);
-    }
-    setInputValue('');
-    setQuestionsShown(false);
-    setAnalysisShown(true);
-    setQuestions([]);
-  };
-
 
   const handleBackButton = () => {
     setQuestionNumber('');
@@ -610,7 +505,6 @@ const stopListeningAudio = () => {
                         </div>
 
                         {/* Coding questions  */}
-
                         <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
                           <div className="card" style={{ cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
                             <div className={!isWideScreen ? 'resumecard' : ''}>
@@ -627,7 +521,6 @@ const stopListeningAudio = () => {
                                       className="button-link1"
                                       style={linkStyle}
                                       onClick={handleCodingQuestions}
-
                                     >
                                       <span className="button button-custom" style={spanStyle}>prepare</span>
                                     </Link>
@@ -662,8 +555,6 @@ const stopListeningAudio = () => {
                                   <div key={index} >
                                     <div className="skill-but" style={{ backgroundColor: '#498C07', display: 'inline-flex', marginRight: '2px' }}>
 
-                                      {/* <div className="card" style={{ cursor: "pointer" }} onClick={handleQuestionFetch} >   */}
-
                                       <h4>{skill}</h4>
                                     </div>
                                   </div>
@@ -674,56 +565,6 @@ const stopListeningAudio = () => {
                                   className="button-link1"
                                   style={linkStyle}
                                   onClick={handleModal}
-                                // onClick={handleQuestionFetch}
-                                >
-                                  <span className="button button-custom" style={spanStyle}>Start</span>
-                                </Link>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* self learning  */}
-                        <div className="col-12 col-xxl-9 col-xl-12 col-lg-12 col-md-12 col-sm-12 display-flex certificatebox">
-                          <div className='card' >
-                            <div className="row">
-                              <div className="resumecard-heading">
-                                <h2 className="heading1">Skill check</h2>
-                                <div className="" style={{ marginBottom: '5px', fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
-                                  Get ready to showcase your expertise—your AI-driven assessment based on your selected skill starts now
-                                </div>
-                              </div>
-                              <div className="skills-container" style={{ display: 'flex', flexWrap: 'wrap' }}>
-                                {/* {skills.map((skill, index) => (
-
-                                  <div key={index} >
-                                    
-                                      {/* <div className="card" style={{ cursor: "pointer" }} onClick={handleQuestionFetch} >   
-
-                                      <h4>{skill}</h4>
-                                    </div>
-                                 
-                                ))} */}
-                                <div className="container">
-                                  <div className="row">
-                                    {skills.map((skill) => (
-                                      <div
-                                        key={skill}
-                                        className="col-12 col-sm-6 col-lg-4 col-xl-3 mb-4"
-                                      >
-                                        <SkillBadgeCard skillName={skill} />
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-
-                              </div>
-                              <div className="resumecard-button">
-                                <Link
-                                  className="button-link1"
-                                  style={linkStyle}
-                                // onClick={handleModal}
-                                // onClick={handleQuestionFetch}
                                 >
                                   <span className="button button-custom" style={spanStyle}>Start</span>
                                 </Link>
@@ -763,12 +604,10 @@ const stopListeningAudio = () => {
                                   placeholder="Type your answer here..."
                                 />
                               ) : (<><span onClick={startAudio}><FiMic size={24} color="#333" /></span>
-                              {/* ) : (<><span onClick={() => { handleRecording(); startSpeechRecognition(); }}><FiMic size={24} color="#333" /></span> */}
-                                {!audioStatus ? <><audio controls src={audioURL} />  {transcript}</> :
+                                {!audioStatus ? <><audio controls src={audioURL} />  {inputValue}</> :
                                   (<span style={{ marginLeft: '10px' }}>Recording...  </span>
 
                                   )}
-                                  {/* <strong>Status:</strong> {listening ? `Listening... ${transcript}` : 'Stopped'} */}
                                   </>
                               )
                               }
@@ -779,13 +618,10 @@ const stopListeningAudio = () => {
                                 {micClicked ? <FaKeyboard size={24} color="#333" /> : <FiMic size={24} color="#333" />}
                               </span>
                               <Link className="button-link1" style={linkStyle}
-
                                 // onClick={() => handleSkillQuestionFetch(inputValue)}
                               onClick={() => handleQuestionFetch()}
-
                               >
                                 <span className="button button-custom" style={spanStyle}>
-
                                   Evaluate
                                 </span>
                               </Link>
@@ -801,18 +637,8 @@ const stopListeningAudio = () => {
                         <div className="card" style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
                           <div style={{ marginTop: '30px', whiteSpace: 'pre-wrap', color: 'black' }}>
                             <h4>Analysis Report</h4>
-                            {/* <p>Question 1</p> 
-                            <p>{analysis.Analysis1}</p><br />
-                            <p>Question 2</p>
-                            <p>{analysis.Analysis2}</p><br />
-                            <p>Question 3</p>
-                            <p>{analysis.Analysis3}</p><br /> */}
-                            {/* <p>{analysis.feedback}</p><br /> */}
                             <p>Overall Feedback</p>
-                            <p>{analysis.overallFeedback}</p><br />
-                            {/* <p>Score</p>
-                            <p>{analysis.score}</p><br /> */}
-
+                            <p>{questions.overallFeedback}</p><br />
                           </div>
                           <div className="resumecard-button">
                             <Link
