@@ -34,6 +34,7 @@ import djangoPNG from '../../images/Icons1/Icons/Django.svg';
 import flaskPNG from '../../images/Icons1/Icons/Flask.png';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Verified from '../../images/user/avatar/Verified.png';
+import VerifiedVideos from './VerifiedVideos';
 
 
 
@@ -953,7 +954,7 @@ const VerifiedBadges = () => {
   </div>
 </div>
 
-
+<VerifiedVideos/>
 
       
 
