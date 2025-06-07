@@ -16,6 +16,7 @@ import ResumeBuilder from './ResumeBuilder';
 import SmartPhone from "../../images/dashboard/mobilebanners/smartphone.png"
 import appStoreIcon from "../../images/dashboard/mobilebanners/appstoreicon.png";
 import playStore from "../../images/dashboard/mobilebanners/playstore.png";
+import Modal from "./AiModal"
 
 
 
@@ -35,6 +36,15 @@ const ApplicantDashboard = () => {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
   const [isWideScreen, setIsWideScreen] = useState(false);
+  const [popUp, setPopUp] = useState(false);
+
+  const handlePopUp = () => {
+    setPopUp(true);
+  }
+
+  const handleClosePopUp = () => {
+    setPopUp(false);
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -538,7 +548,7 @@ const ApplicantDashboard = () => {
                               <h2 className="heading1">Mock interview by AI
                               </h2>
                               <div className="" style={{ fontSize: '16.8px', color: '#6F6F6F', fontWeight: '500', fontFamily: 'Plus Jakarta Sans', fontStyle: 'normal' }}>
-                                Check your performance in your skill set by taking AI based mock tests
+                                Upgrade your performance in your skill set by taking AI based mock tests daily. You are just one click away.
                               </div>
                             </div>
                             <div className="resumecard-button">
@@ -548,6 +558,7 @@ const ApplicantDashboard = () => {
                                 style={linkStyle}
                                 onMouseEnter={() => setIsHovered(true)}
                                 onMouseLeave={() => setIsHovered(false)}
+                                // onClick={handlePopUp}
                               >
                                 <span className="button button-custom" style={spanStyle}>Start</span>
                               </Link>
@@ -566,6 +577,10 @@ const ApplicantDashboard = () => {
                     </div>
                   </div>
                 )}
+                {popUp && (
+                  <Modal onClose={handleClosePopUp}/>
+                )
+                }
               </div>
             </div>
           </div>
