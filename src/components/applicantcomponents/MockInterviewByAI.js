@@ -6,7 +6,7 @@ import { fetchQuestions } from './geminiUtils';
 import { Link } from "react-router-dom";
 import Taketest from '../../images/user/avatar/Taketest.png';
 import { ClipLoader } from "react-spinners"
-import { API_KEY } from '../../apikey';
+import { API_KEY, deepgram_api } from '../../apikey';
 import { BiArrowBack } from "react-icons/bi";
 import { FiMic } from 'react-icons/fi';
 import { FaKeyboard } from 'react-icons/fa';
@@ -43,6 +43,13 @@ const MockInterviewByAi = () => {
   const [snackbars, setSnackbars] = useState([]);
    const recognitionRef = useRef(null);
 const isListeningRef = useRef(false);
+const deepgramSocketRef = useRef(null);
+const audioContextRef = useRef(null);
+const processorRef = useRef(null);
+const sourceRef = useRef(null);
+  const socketRef = useRef(null);
+  const [listening, setListening] = useState(false);
+
 
   const addSnackbar = (snackbar) => {
     setSnackbars((prevSnackbars) => [...prevSnackbars, snackbar]);
@@ -181,66 +188,129 @@ setInputValue(transcript);
 
 let finalTranscriptArray = []; 
 
-const startListeningAudio = () => {
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    alert('Web Speech API not supported in this browser.');
-    return;
-  }
+// const startListeningAudio = () => {
+//   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+//     alert('Web Speech API not supported in this browser.');
+//     return;
+//   }
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
+//   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+//   const recognition = new SpeechRecognition();
 
-  recognition.lang = 'en-IN';
-  recognition.continuous = true;
-  recognition.interimResults = true;
+//   recognition.lang = 'en-IN';
+//   recognition.continuous = true;
+//   recognition.interimResults = true;
 
-  recognition.onresult = (event) => {
-    let interimTranscript = '';
+//   recognition.onresult = (event) => {
+//     let interimTranscript = '';
 
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcriptChunk = event.results[i][0].transcript;
+//     for (let i = event.resultIndex; i < event.results.length; i++) {
+//       const transcriptChunk = event.results[i][0].transcript;
 
-      if (event.results[i].isFinal) {
-        finalTranscriptArray.push(transcriptChunk.trim());
-      } else {
-        interimTranscript += transcriptChunk;
+//       if (event.results[i].isFinal) {
+//         finalTranscriptArray.push(transcriptChunk.trim());
+//       } else {
+//         interimTranscript += transcriptChunk;
+//       }
+//     }
+
+//     const fullTranscript = [...finalTranscriptArray, interimTranscript].join(' ');
+//     setTranscript(fullTranscript);
+//     setInputValue(fullTranscript);
+//   };
+
+//   recognition.onerror = (e) => {
+//     console.error('Speech recognition error:', e.error);
+//   };
+
+//   recognition.onend = () => {
+//     console.log('Speech recognition ended');
+//     if (isListeningRef.current) {
+//       console.log('Restarting recognition...');
+//       recognition.start(); // Restart if user hasn't stopped it
+//     }
+//   };
+
+//   recognitionRef.current = recognition;
+//   isListeningRef.current = true;
+//   recognition.start();
+//   console.log('Transcription started');
+// };
+
+
+const startListeningAudio = async () => {
+    const socket = new WebSocket('ws://localhost:8081/ws/deepgram');
+    socketRef.current = socket;
+
+    socket.onopen = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)({
+        sampleRate: 16000,
+      });
+
+      audioContextRef.current = audioContext;
+      sourceRef.current = audioContext.createMediaStreamSource(stream);
+      processorRef.current = audioContext.createScriptProcessor(4096, 1, 1);
+
+      sourceRef.current.connect(processorRef.current);
+      processorRef.current.connect(audioContext.destination);
+
+      processorRef.current.onaudioprocess = (event) => {
+        const input = event.inputBuffer.getChannelData(0);
+        const buffer = new ArrayBuffer(input.length * 2);
+        const view = new DataView(buffer);
+        for (let i = 0; i < input.length; i++) {
+          let s = Math.max(-1, Math.min(1, input[i]));
+          view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(buffer);
+        }
+      };
+
+      setListening(true);
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const chunk = data.channel?.alternatives[0]?.transcript;
+      if (chunk) {
+        setTranscript(prev => prev + ' ' + chunk);
+        console.log(transcript);
       }
-    }
+    };
 
-    const fullTranscript = [...finalTranscriptArray, interimTranscript].join(' ');
-    setTranscript(fullTranscript);
-    setInputValue(fullTranscript);
+    socket.onerror = (e) => console.error('WebSocket error', e);
+    socket.onclose = () => console.log('WebSocket closed');
   };
 
-  recognition.onerror = (e) => {
-    console.error('Speech recognition error:', e.error);
-  };
 
-  recognition.onend = () => {
-    console.log('Speech recognition ended');
-    if (isListeningRef.current) {
-      console.log('Restarting recognition...');
-      recognition.start(); // Restart if user hasn't stopped it
-    }
-  };
-
-  recognitionRef.current = recognition;
-  isListeningRef.current = true;
-  recognition.start();
-  console.log('Transcription started');
-};
-
-const stopListeningAudio = () => {
-  isListeningRef.current = false;
-  const recognition = recognitionRef.current;
-  if (recognition) {
-    recognition.stop();
-    recognitionRef.current = null;
-    console.log('Transcription stopped manually');
-  }
-};
+// const stopListeningAudio = () => {
+//   isListeningRef.current = false;
+//   const recognition = recognitionRef.current;
+//   if (recognition) {
+//     recognition.stop();
+//     recognitionRef.current = null;
+//     console.log('Transcription stopped manually');
+//   }
+// };
 
   // Log transcript updates
+  
+  const stopListeningAudio = () => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.close();
+    }
+
+    processorRef.current?.disconnect();
+    sourceRef.current?.disconnect();
+    audioContextRef.current?.close();
+
+    setListening(false);
+  };
+
+
+
   useEffect(() => {
     console.log('Transcript:', transcript);
   }, [transcript]);
