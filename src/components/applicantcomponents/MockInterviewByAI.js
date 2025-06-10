@@ -38,35 +38,35 @@ const MockInterviewByAi = () => {
   const audioStreamRef = useRef(null);
   const [snackbars, setSnackbars] = useState([]);
   const [userData, setUserData] = useState(null);
-      const [isMobileView, setIsMobileView] = useState(window.innerWidth < 755);
-       const [cameraAccessible, setCameraAccessible] = useState(false); // NEW STATE
-       const [isCameraErrorSubmit, setCameraErrorSubmit] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 755);
+  const [cameraAccessible, setCameraAccessible] = useState(false); // NEW STATE
+  const [isCameraErrorSubmit, setCameraErrorSubmit] = useState(false);
 
-    const linkStyle = {
+  const linkStyle = {
     backgroundColor: '#F97316',
     display: 'inline-block',
   };
 
   const spanStyle = {
-        color: 'white',
-        fontFamily: 'Plus Jakarta Sans',
-        fontSize: '15px',
-        fontWeight: '600',
+    color: 'white',
+    fontFamily: 'Plus Jakarta Sans',
+    fontSize: '15px',
+    fontWeight: '600',
+  };
+
+  useEffect(() => {
+    const storedUserData = localStorage.getItem('userData');
+    if (storedUserData) {
+      setUserData(JSON.parse(storedUserData));
+    }
+
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 755);
     };
 
-    useEffect(() => {
-            const storedUserData = localStorage.getItem('userData');
-            if (storedUserData) {
-                setUserData(JSON.parse(storedUserData));
-            }
-    
-            const handleResize = () => {
-                setIsMobileView(window.innerWidth < 755);
-            };
-    
-            window.addEventListener('resize', handleResize);
-            return () => window.removeEventListener('resize', handleResize);
-        }, []);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const addSnackbar = (snackbar) => {
     setSnackbars((prevSnackbars) => [...prevSnackbars, snackbar]);
@@ -85,6 +85,30 @@ const MockInterviewByAi = () => {
   }
 
   useEffect(() => {
+    const handleDisable = (e) => e.preventDefault();
+
+    if (questionsShown) {
+      document.addEventListener('copy', handleDisable);
+      document.addEventListener('paste', handleDisable);
+      document.addEventListener('cut', handleDisable);
+      document.addEventListener('contextmenu', handleDisable); // right-click
+    } else {
+      document.removeEventListener('copy', handleDisable);
+      document.removeEventListener('paste', handleDisable);
+      document.removeEventListener('cut', handleDisable);
+      document.removeEventListener('contextmenu', handleDisable);
+    }
+
+    // Cleanup on component unmount
+    return () => {
+      document.removeEventListener('copy', handleDisable);
+      document.removeEventListener('paste', handleDisable);
+      document.removeEventListener('cut', handleDisable);
+      document.removeEventListener('contextmenu', handleDisable);
+    };
+  }, [questionsShown]);
+
+  useEffect(() => {
     const startVideo = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -92,26 +116,26 @@ const MockInterviewByAi = () => {
         setCameraAccessible(true);
 
         if (videoRef.current) {
-          
+
           videoRef.current.srcObject = stream;
         }
 
         stream.getVideoTracks().forEach(track => {
-      track.onended = () => {
-        console.warn('Camera stream ended — possible manual stop.');
-        setCameraErrorSubmit(true);
-        handleSubmit();
-        addSnackbar({ message: 'The test has been submitted since there is no video to monitor.', type: 'success' });
-      };
+          track.onended = () => {
+            console.warn('Camera stream ended possible manual stop.');
+            setCameraErrorSubmit(true);
+            handleSubmit();
+            addSnackbar({ message: 'The test has been submitted since there is no video to monitor.', type: 'success' });
+          };
 
-      track.onmute = () => {
-        console.warn('Camera muted.');
-      };
+          track.onmute = () => {
+            console.warn('Camera muted.');
+          };
 
-      track.onunmute = () => {
-        console.log('Camera unmuted.');
-      };
-    });
+          track.onunmute = () => {
+            console.log('Camera unmuted.');
+          };
+        });
 
         peerConnectionRef.current = new RTCPeerConnection();
         stream.getTracks().forEach(track => {
@@ -126,7 +150,7 @@ const MockInterviewByAi = () => {
     };
 
     const stopVideo = () => {
-      
+
       const stream = streamRef.current;
 
       if (stream) {
@@ -148,8 +172,8 @@ const MockInterviewByAi = () => {
 
     if (questionsShown && !homePage) {
       startVideo();
-    } 
-    else if(isModalOpen) {
+    }
+    else if (isModalOpen) {
       startVideo();
     }
     else {
@@ -208,7 +232,7 @@ const MockInterviewByAi = () => {
   const stopAudio = () => {
     console.log('Stopping audio...');
     try {
-            
+
       const mediaRecorder = mediaRecorderRef.current;
       if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.onstop = async () => {
@@ -222,7 +246,8 @@ const MockInterviewByAi = () => {
           try {
             const jwtToken = localStorage.getItem("jwtToken");
             const response = await axios.post(`${apiUrl}/transcribe`, file, {
-              headers: {Authorization: `Bearer ${jwtToken}`,
+              headers: {
+                Authorization: `Bearer ${jwtToken}`,
                 'Content-Type': 'audio/webm',
               },
             });
@@ -261,7 +286,7 @@ const MockInterviewByAi = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
- 
+
 
   useEffect(() => {
     setLoading(true);
@@ -304,7 +329,7 @@ const MockInterviewByAi = () => {
 
       const lastQA = {
         questionNumber: questionNumber || 0,
-        question: questions?.question || null,    
+        question: questions?.question || null,
         analysis: analysis,
         completionStatus: questions.completionStatus,
         overallFeedback: questions.overallFeedback || null,
@@ -551,17 +576,17 @@ const MockInterviewByAi = () => {
 
                         <div className="card" style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
                           <div style={{ marginTop: '30px', whiteSpace: 'pre-wrap', color: 'black' }}>
-                           
+
                             {isCameraErrorSubmit ? (
                               <p>The test is submitted due to camera error</p>
-                            ) : ( 
+                            ) : (
                               <>
-                            <h4>Analysis Report</h4>
-                            <p>Overall Feedback</p>
-                            <p>{questions.overallFeedback}</p><br />
-                            <p>Score</p>
-                            <p>{questions.score}</p><br />
-                            </>)}
+                                <h4>Analysis Report</h4>
+                                <p>Overall Feedback</p>
+                                <p>{questions.overallFeedback}</p><br />
+                                <p>Score</p>
+                                <p>{questions.score}</p><br />
+                              </>)}
                           </div>
                           <div className="resumecard-button">
                             <Link
@@ -587,77 +612,78 @@ const MockInterviewByAi = () => {
 
       {isModalOpen && (
         <div className="modal-overlay ">
-            <div className="modal-text modalCss">
-                <div className="button-container" style={{ position: 'relative' }}>
-                    <button
-                        type="button"
-                        onClick={handleCloseModal}
-                        style={{
-                            border: 'none',
-                            position: 'absolute',
-                            top: '-1px',
-                            right: '0px',
-                            background: 'transparent',
-                            padding: '10px',
-                        }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none">
-                            <path d="M15.5 5L5.5 15" stroke="#6C6C6C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M5.5 5L15.5 15" stroke="#6C6C6C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </button>
-                </div>
-
-                <div className="modal-body">
-                    <h3 style={{ fontSize: '20px', textAlign: 'center', marginBottom: '35px' }}>Instructions</h3>
-                    <div
-                        className={isMobileView ? 'bg-light p-3 rounded w-100' : ''}
-                        style={
-                            isMobileView
-                                ? { textAlign: 'left' }
-                                : {
-                                    backgroundColor: '#F9F9F9',
-                                    borderRadius: '10px',
-                                    padding: '10px',
-                                    textAlign: 'justify',
-                                    fontFamily: 'Plus Jakarta Sans',
-                                    display: 'flex',
-                                    width: 'auto',
-                                }
-                        }
-                    >
-                        <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '8px', color: '#000' }}>
-                            <ol>
-                                <li>1. This AI-powered test generates each question based on your previous response.</li>
-                                <li>2. It evaluates your understanding of the skills you selected during setup.</li>
-                                <li>3. Please answer independently without using external help for accurate results.</li>
-                                <li>4. After completion, you’ll receive a performance summary with feedback and suggestions.</li>
-                            </ol>
-                        </div>
-                    </div>
-
-                    <div className="resumecard-button">
-                        <Link
-                            className="button-link1"
-                            style={linkStyle}
-                            onClick={cameraAccessible ? handleQuestionFetch : ''}
-                        >
-                            <span className="button button-custom" style={spanStyle}>Start</span>
-                        </Link>
-                        {!cameraAccessible && (
-                            <p style={{ color: 'red', fontSize: '13px', marginTop: '5px' }}>
-                                Camera access is required to start the test.
-                            </p>
-                        )}
-                    </div>
-                </div>
+          <div className="modal-text modalCss">
+            <div className="button-container" style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                style={{
+                  border: 'none',
+                  position: 'absolute',
+                  top: '-1px',
+                  right: '0px',
+                  background: 'transparent',
+                  padding: '10px',
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none">
+                  <path d="M15.5 5L5.5 15" stroke="#6C6C6C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M5.5 5L15.5 15" stroke="#6C6C6C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
+
+            <div className="modal-body">
+              <h3 style={{ fontSize: '20px', textAlign: 'center', marginBottom: '35px' }}>Instructions</h3>
+              <div
+                className={isMobileView ? 'bg-light p-3 rounded w-100' : ''}
+                style={
+                  isMobileView
+                    ? { textAlign: 'left' }
+                    : {
+                      backgroundColor: '#F9F9F9',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      textAlign: 'justify',
+                      fontFamily: 'Plus Jakarta Sans',
+                      display: 'flex',
+                      width: 'auto',
+                    }
+                }
+              >
+                <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '8px', color: '#000' }}>
+                  <ol>
+                    <li>1. This AI-powered test generates each question based on your previous response.</li>
+                    <li>2. It evaluates your understanding of the skills you selected during setup.</li>
+                    <li>3. Please answer independently without using external help for accurate results.</li>
+                    <li>4. After completion, you’ll receive a performance summary with feedback and suggestions.</li>
+                    <li>5. The test will automatically submitted when camera access is gone.</li>
+                  </ol>
+                </div>
+              </div>
+
+              <div className="resumecard-button">
+                <Link
+                  className="button-link1"
+                  style={linkStyle}
+                  onClick={cameraAccessible ? handleQuestionFetch : ''}
+                >
+                  <span className="button button-custom" style={spanStyle}>Start</span>
+                </Link>
+                {!cameraAccessible && (
+                  <p style={{ color: 'red', fontSize: '13px', marginTop: '5px' }}>
+                    Camera access is required to start the test.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
-      
-      
-      
-      
+
+
+
+
       {!homePage && questionsShown && (
         <div>
           <video
