@@ -1,17 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUserContext } from '../common/UserProvider';
 import axios from 'axios';
 import { apiUrl } from '../../services/ApplicantAPIService';
-import { fetchQuestions } from './geminiUtils';
 import { Link } from "react-router-dom";
 import Taketest from '../../images/user/avatar/Taketest.png';
 import { ClipLoader } from "react-spinners"
-import { API_KEY, deepgram_api } from '../../apikey';
 import { BiArrowBack } from "react-icons/bi";
 import { FiMic } from 'react-icons/fi';
 import { FaKeyboard } from 'react-icons/fa';
-import Modal from './MockInterviewModel'
 import Snackbar from '../common/Snackbar';
+import './MockInterviewByAI.css'
 
 
 const MockInterviewByAi = () => {
@@ -19,7 +17,6 @@ const MockInterviewByAi = () => {
   const userId = user.id;
   const [skills, setSkills] = useState([]);
   const [questions, setQuestions] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [inputValue, setInputValue] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [isWideScreen, setIsWideScreen] = useState(false);
@@ -34,22 +31,42 @@ const MockInterviewByAi = () => {
   const [audioURL, setAudioURL] = useState(null);
   const [history, setHistory] = useState([]);
   const [questionNumber, setQuestionNumber] = useState();
-  const [transcript, setTranscript] = useState('');
   const [isModalOpen, setModalOpen] = useState(false);
   const videoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const streamRef = useRef(null);
   const audioStreamRef = useRef(null);
   const [snackbars, setSnackbars] = useState([]);
-   const recognitionRef = useRef(null);
-const isListeningRef = useRef(false);
-const deepgramSocketRef = useRef(null);
-const audioContextRef = useRef(null);
-const processorRef = useRef(null);
-const sourceRef = useRef(null);
-  const socketRef = useRef(null);
-  const [listening, setListening] = useState(false);
+  const [userData, setUserData] = useState(null);
+      const [isMobileView, setIsMobileView] = useState(window.innerWidth < 755);
+       const [cameraAccessible, setCameraAccessible] = useState(false); // NEW STATE
+       const [isCameraErrorSubmit, setCameraErrorSubmit] = useState(false);
 
+    const linkStyle = {
+    backgroundColor: '#F97316',
+    display: 'inline-block',
+  };
+
+  const spanStyle = {
+        color: 'white',
+        fontFamily: 'Plus Jakarta Sans',
+        fontSize: '15px',
+        fontWeight: '600',
+    };
+
+    useEffect(() => {
+            const storedUserData = localStorage.getItem('userData');
+            if (storedUserData) {
+                setUserData(JSON.parse(storedUserData));
+            }
+    
+            const handleResize = () => {
+                setIsMobileView(window.innerWidth < 755);
+            };
+    
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, []);
 
   const addSnackbar = (snackbar) => {
     setSnackbars((prevSnackbars) => [...prevSnackbars, snackbar]);
@@ -72,10 +89,29 @@ const sourceRef = useRef(null);
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         streamRef.current = stream;
+        setCameraAccessible(true);
 
         if (videoRef.current) {
+          
           videoRef.current.srcObject = stream;
         }
+
+        stream.getVideoTracks().forEach(track => {
+      track.onended = () => {
+        console.warn('Camera stream ended — possible manual stop.');
+        setCameraErrorSubmit(true);
+        handleSubmit();
+        addSnackbar({ message: 'The test has been submitted since there is no video to monitor.', type: 'success' });
+      };
+
+      track.onmute = () => {
+        console.warn('Camera muted.');
+      };
+
+      track.onunmute = () => {
+        console.log('Camera unmuted.');
+      };
+    });
 
         peerConnectionRef.current = new RTCPeerConnection();
         stream.getTracks().forEach(track => {
@@ -84,11 +120,13 @@ const sourceRef = useRef(null);
 
         console.log('Webcam started');
       } catch (err) {
+        setCameraAccessible(false);
         console.error('Error starting webcam:', err);
       }
     };
 
     const stopVideo = () => {
+      
       const stream = streamRef.current;
 
       if (stream) {
@@ -110,14 +148,19 @@ const sourceRef = useRef(null);
 
     if (questionsShown && !homePage) {
       startVideo();
-    } else {
+    } 
+    else if(isModalOpen) {
+      startVideo();
+    }
+    else {
+      setCameraAccessible(false);
       stopVideo();
     }
 
     return () => {
       stopVideo();
     };
-  }, [questionsShown, homePage]);
+  }, [questionsShown, homePage, isModalOpen]);
 
 
   const handleToggleInputMode = () => {
@@ -126,7 +169,7 @@ const sourceRef = useRef(null);
   };
 
 
-const startAudio = async () => {
+  const startAudio = async () => {
     try {
       if (audioStatus) {
         stopAudio();
@@ -153,9 +196,7 @@ const startAudio = async () => {
         };
 
         mediaRecorder.start();
-        // 3. Start transcription
-          startListeningAudio();
-  
+
         setAudioStatus(true);
         console.log('Audio started');
       }
@@ -167,11 +208,34 @@ const startAudio = async () => {
   const stopAudio = () => {
     console.log('Stopping audio...');
     try {
-      stopListeningAudio();
-setInputValue(transcript);
+            
       const mediaRecorder = mediaRecorderRef.current;
       if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          setAudioURL(audioUrl);
+
+          // Create a File object (optional but helpful for content-type detection)
+          const file = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
+
+          try {
+            const jwtToken = localStorage.getItem("jwtToken");
+            const response = await axios.post(`${apiUrl}/transcribe`, file, {
+              headers: {Authorization: `Bearer ${jwtToken}`,
+                'Content-Type': 'audio/webm',
+              },
+            });
+
+            console.log('Transcription result:', response.data);
+            const audiotext = response.data.results.channels[0].alternatives[0].transcript;
+            console.log(audiotext);
+            setInputValue(audiotext);
+          } catch (err) {
+            console.error('Error sending audio to backend:', err);
+          }
+        };
+
       }
 
       const stream = audioStreamRef.current;
@@ -186,139 +250,6 @@ setInputValue(transcript);
     }
   };
 
-let finalTranscriptArray = []; 
-
-// const startListeningAudio = () => {
-//   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-//     alert('Web Speech API not supported in this browser.');
-//     return;
-//   }
-
-//   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-//   const recognition = new SpeechRecognition();
-
-//   recognition.lang = 'en-IN';
-//   recognition.continuous = true;
-//   recognition.interimResults = true;
-
-//   recognition.onresult = (event) => {
-//     let interimTranscript = '';
-
-//     for (let i = event.resultIndex; i < event.results.length; i++) {
-//       const transcriptChunk = event.results[i][0].transcript;
-
-//       if (event.results[i].isFinal) {
-//         finalTranscriptArray.push(transcriptChunk.trim());
-//       } else {
-//         interimTranscript += transcriptChunk;
-//       }
-//     }
-
-//     const fullTranscript = [...finalTranscriptArray, interimTranscript].join(' ');
-//     setTranscript(fullTranscript);
-//     setInputValue(fullTranscript);
-//   };
-
-//   recognition.onerror = (e) => {
-//     console.error('Speech recognition error:', e.error);
-//   };
-
-//   recognition.onend = () => {
-//     console.log('Speech recognition ended');
-//     if (isListeningRef.current) {
-//       console.log('Restarting recognition...');
-//       recognition.start(); // Restart if user hasn't stopped it
-//     }
-//   };
-
-//   recognitionRef.current = recognition;
-//   isListeningRef.current = true;
-//   recognition.start();
-//   console.log('Transcription started');
-// };
-
-
-const startListeningAudio = async () => {
-    const socket = new WebSocket('ws://localhost:8081/ws/deepgram');
-    socketRef.current = socket;
-
-    socket.onopen = async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)({
-        sampleRate: 16000,
-      });
-
-      audioContextRef.current = audioContext;
-      sourceRef.current = audioContext.createMediaStreamSource(stream);
-      processorRef.current = audioContext.createScriptProcessor(4096, 1, 1);
-
-      sourceRef.current.connect(processorRef.current);
-      processorRef.current.connect(audioContext.destination);
-
-      processorRef.current.onaudioprocess = (event) => {
-        const input = event.inputBuffer.getChannelData(0);
-        const buffer = new ArrayBuffer(input.length * 2);
-        const view = new DataView(buffer);
-        for (let i = 0; i < input.length; i++) {
-          let s = Math.max(-1, Math.min(1, input[i]));
-          view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-        }
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(buffer);
-        }
-      };
-
-      setListening(true);
-    };
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      const chunk = data.channel?.alternatives[0]?.transcript;
-      if (chunk) {
-        setTranscript(prev => prev + ' ' + chunk);
-        console.log(transcript);
-      }
-    };
-
-    socket.onerror = (e) => console.error('WebSocket error', e);
-    socket.onclose = () => console.log('WebSocket closed');
-  };
-
-
-// const stopListeningAudio = () => {
-//   isListeningRef.current = false;
-//   const recognition = recognitionRef.current;
-//   if (recognition) {
-//     recognition.stop();
-//     recognitionRef.current = null;
-//     console.log('Transcription stopped manually');
-//   }
-// };
-
-  // Log transcript updates
-  
-  const stopListeningAudio = () => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.close();
-    }
-
-    processorRef.current?.disconnect();
-    sourceRef.current?.disconnect();
-    audioContextRef.current?.close();
-
-    setListening(false);
-  };
-
-
-
-  useEffect(() => {
-    console.log('Transcript:', transcript);
-  }, [transcript]);
-
-  const linkStyle = {
-    backgroundColor: '#F97316',
-    display: 'inline-block',
-  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -330,13 +261,7 @@ const startListeningAudio = async () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const spanStyle = {
-    color: 'white',
-    fontFamily: 'Plus Jakarta Sans',
-    fontSize: '15px',
-    fontWeight: '600',
-  };
-
+ 
 
   useEffect(() => {
     setLoading(true);
@@ -368,84 +293,6 @@ const startListeningAudio = async () => {
     window.open("https://www.hackerrank.com/bitlabs-1747748513", "_blank");
   }
 
-  // const handleSkillQuestionFetch = useCallback(async (currentValue) => {
-  //   const currentAnswer = currentValue;
-  //   setAnswers(currentAnswer);
-  //   setModalOpen(false);
-  //   setLoading(true);
-  //   setAudioStatus(false);
-  //   setMicClicked();
-  //   try {
-
-  //     const result = await fetchQuestions(skills, API_KEY, history, currentAnswer);
-  //     setHomePage(false);
-  //     setQuestions(result);
-  //     console.log(questions);
-  //     const updatedHistory = [...history, { result, inputValue }];
-  //     console.log(updatedHistory);
-  //     setHistory(updatedHistory);
-  //     console.log(history);
-  //     setInputValue('');
-  //     setLoading(false);
-  //     if (result.completionStatus) {
-  //       setAnalysis(result);
-  //       handleSubmit();
-  //     }
-  //   } catch (err) {
-  //     console.error("Failed to load questions", err);
-  //     setQuestions([]);
-  //   }
-  // }, [history, inputValue]);
-
-
-  //   const handleQuestionFetch = async () => {
-  //     // const currentAnswer = currentValue;
-  //      setModalOpen(false);
-  //     setLoading(true);
-  //     setAnalysis('');
-  //     try {
-  //       const jwtToken = localStorage.getItem("jwtToken");
-  // console.log(userId);
-  // const payload = {
-  //         applicantId : userId,
-  //         skills : skills,
-  //         history : history
-  //       };
-  //       const result = await axios.post(`${apiUrl}/api/interview/next-question`, payload, {
-  //         headers: {
-  //           Authorization: `Bearer ${jwtToken}`,
-  //           'Content-Type': 'application/json'
-  //         }
-  //       });
-
-  //       const data = result.data;
-  //       console.log(data);
-  //       const updatedHistory = [...history, {data, inputValue}];
-  //       console.log(updatedHistory);
-  //       setHistory(updatedHistory);
-  //       setQuestions(data);
-  //       console.log(data);
-  //       setQuestionNumber(data.questionNumber);
-  //       setInputValue('');
-  //       setHomePage(false);
-  //       setLoading(false);
-
-  //       if(data.completionStatus){
-  //         handleSubmit();
-  //       addSnackbar({ message: 'The test has been submitted since there are no more questions to ask.', type: 'success' });
-
-  //       }
-
-
-  //     } catch (err) {
-  //       console.error("Failed to load questions", err);
-  //       setQuestions([]);
-  //       handleSubmit();
-  //       addSnackbar({ message: 'The test has been submitted since there are no more questions to ask.', type: 'success' });
-
-  //     }
-
-  //   }
 
   const handleQuestionFetch = async () => {
     setModalOpen(false);
@@ -456,29 +303,29 @@ const startListeningAudio = async () => {
       const jwtToken = localStorage.getItem("jwtToken");
 
       const lastQA = {
-        questionNumber: questionNumber || 0,   
-        question: questions?.question || null,     
-        // currentAnswer: inputValue || null,          
-        analysis : analysis  ,        
-       completionStatus : questions.completionStatus,
-        overallFeedback  : questions.overallFeedback || null,
-        skill : questions.skill || null,
-        currentDifficulty : questions.currentDifficulty,
-currentSkillIndex : questions.currentSkillIndex ,
-        currentSkillQuestionNumber : questions.currentSkillQuestionNumber || null
+        questionNumber: questionNumber || 0,
+        question: questions?.question || null,    
+        analysis: analysis,
+        completionStatus: questions.completionStatus,
+        overallFeedback: questions.overallFeedback || null,
+        skill: questions.skill || null,
+        currentDifficulty: questions.currentDifficulty,
+        currentSkillIndex: questions.currentSkillIndex,
+        score: questions.score || 0,
+        currentSkillQuestionNumber: questions.currentSkillQuestionNumber || null
       };
       const userAnser = {
-        currentAnswer : inputValue
+        currentAnswer: inputValue
       }
       console.log(lastQA);
       let updatedHistory;
       console.log(lastQA.questionNumber);
-      if(lastQA.questionNumber !== 0){
+      if (lastQA.questionNumber !== 0) {
         console.log(30);
         updatedHistory = [...history, lastQA, userAnser];
         console.log(updatedHistory);
       }
-      else{
+      else {
         updatedHistory = [];
       }
       console.log(history);
@@ -503,13 +350,14 @@ currentSkillIndex : questions.currentSkillIndex ,
 
       const data = result.data;
       console.log(data);
-      // Update local history with updatedHistory from before, backend doesn't return full history
+      console.log(data.question);
+      console.log(data.analysis);
+
       setHistory(updatedHistory);
       console.log(history);
 
       // Set the new question from response
       setQuestions(data);
-      console.log(questions.question);
       setAnalysis(data.analysis)
       // Update question number
       setQuestionNumber(data.questionNumber);
@@ -533,11 +381,11 @@ currentSkillIndex : questions.currentSkillIndex ,
 
   const handleSubmit = async () => {
     setQuestionNumber('');
-     setHistory([]);
+    setHistory([]);
     setLoading(false);
     setHomePage(false);
     setQuestionsShown(false);
-    setAnalysisShown(true);    
+    setAnalysisShown(true);
   }
 
   const handleBackButton = () => {
@@ -547,13 +395,12 @@ currentSkillIndex : questions.currentSkillIndex ,
     setQuestionsShown(true);
     setAnalysisShown(false);
     setQuestions([]);
-    setCurrentIndex(0);
     setInputValue('');
     setAudioStatus(false);
     setMicClicked(false);
     setHistory([]);
   }
-  
+
   return (
     <>
       {loading ? <div className="spinner-container">
@@ -663,7 +510,6 @@ currentSkillIndex : questions.currentSkillIndex ,
                           <div className="separator"></div>
                           <div style={{ marginBottom: '30px' }}>
                             <div>
-                              {/* <h4>{questions[currentIndex].question}</h4>*/}
                               <h4>{questions.questionNumber}. {questions.question} </h4>
                               {!micClicked ? (
                                 <textarea
@@ -678,7 +524,7 @@ currentSkillIndex : questions.currentSkillIndex ,
                                   (<span style={{ marginLeft: '10px' }}>Recording...  </span>
 
                                   )}
-                                  </>
+                              </>
                               )
                               }
                             </div>
@@ -688,8 +534,7 @@ currentSkillIndex : questions.currentSkillIndex ,
                                 {micClicked ? <FaKeyboard size={24} color="#333" /> : <FiMic size={24} color="#333" />}
                               </span>
                               <Link className="button-link1" style={linkStyle}
-                                // onClick={() => handleSkillQuestionFetch(inputValue)}
-                              onClick={() => handleQuestionFetch()}
+                                onClick={() => handleQuestionFetch()}
                               >
                                 <span className="button button-custom" style={spanStyle}>
                                   Evaluate
@@ -706,9 +551,17 @@ currentSkillIndex : questions.currentSkillIndex ,
 
                         <div className="card" style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: '500' }}>
                           <div style={{ marginTop: '30px', whiteSpace: 'pre-wrap', color: 'black' }}>
+                           
+                            {isCameraErrorSubmit ? (
+                              <p>The test is submitted due to camera error</p>
+                            ) : ( 
+                              <>
                             <h4>Analysis Report</h4>
                             <p>Overall Feedback</p>
                             <p>{questions.overallFeedback}</p><br />
+                            <p>Score</p>
+                            <p>{questions.score}</p><br />
+                            </>)}
                           </div>
                           <div className="resumecard-button">
                             <Link
@@ -729,8 +582,82 @@ currentSkillIndex : questions.currentSkillIndex ,
           </div>
         </div>
       )}
-      {isModalOpen && <Modal onClose={() => {handleCloseModal(); setHistory([])}} onStart={handleQuestionFetch} />}
-      {/* {isModalOpen && <Modal onClose={handleCloseModal} onStart={handleSkillQuestionFetch} />} */}
+
+
+
+      {isModalOpen && (
+        <div className="modal-overlay ">
+            <div className="modal-text modalCss">
+                <div className="button-container" style={{ position: 'relative' }}>
+                    <button
+                        type="button"
+                        onClick={handleCloseModal}
+                        style={{
+                            border: 'none',
+                            position: 'absolute',
+                            top: '-1px',
+                            right: '0px',
+                            background: 'transparent',
+                            padding: '10px',
+                        }}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none">
+                            <path d="M15.5 5L5.5 15" stroke="#6C6C6C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M5.5 5L15.5 15" stroke="#6C6C6C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div className="modal-body">
+                    <h3 style={{ fontSize: '20px', textAlign: 'center', marginBottom: '35px' }}>Instructions</h3>
+                    <div
+                        className={isMobileView ? 'bg-light p-3 rounded w-100' : ''}
+                        style={
+                            isMobileView
+                                ? { textAlign: 'left' }
+                                : {
+                                    backgroundColor: '#F9F9F9',
+                                    borderRadius: '10px',
+                                    padding: '10px',
+                                    textAlign: 'justify',
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    display: 'flex',
+                                    width: 'auto',
+                                }
+                        }
+                    >
+                        <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '8px', color: '#000' }}>
+                            <ol>
+                                <li>1. This AI-powered test generates each question based on your previous response.</li>
+                                <li>2. It evaluates your understanding of the skills you selected during setup.</li>
+                                <li>3. Please answer independently without using external help for accurate results.</li>
+                                <li>4. After completion, you’ll receive a performance summary with feedback and suggestions.</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div className="resumecard-button">
+                        <Link
+                            className="button-link1"
+                            style={linkStyle}
+                            onClick={cameraAccessible ? handleQuestionFetch : ''}
+                        >
+                            <span className="button button-custom" style={spanStyle}>Start</span>
+                        </Link>
+                        {!cameraAccessible && (
+                            <p style={{ color: 'red', fontSize: '13px', marginTop: '5px' }}>
+                                Camera access is required to start the test.
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
+      
+      
+      
+      
       {!homePage && questionsShown && (
         <div>
           <video

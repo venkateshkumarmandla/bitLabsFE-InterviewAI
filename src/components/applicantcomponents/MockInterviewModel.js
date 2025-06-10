@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from "react-router-dom";
 import './MockInterviewByAI.css'
-
+// http://192.168.1.31:3000/mock-interview-by-ai
 
 const Modal = ({ onClose, onStart }) => {
     const [userData, setUserData] = useState(null);
     const [isMobileView, setIsMobileView] = useState(window.innerWidth < 755);
-
-    function generateSessionId  (){
-  return crypto.randomUUID();
-}
 
     const linkStyle = {
         backgroundColor: '#F97316',
