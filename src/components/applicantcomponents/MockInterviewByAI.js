@@ -69,7 +69,7 @@ const MockInterviewByAi = () => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 755);
     };
-
+handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -615,8 +615,8 @@ const MockInterviewByAi = () => {
                                   style={{ width: '100%', padding: '10px', borderRadius: '6px' }}
                                   placeholder="Type your answer here..."
                                 />
-                              ) : (<><span onClick={startAudio}><FiMic size={24} color="#333" /></span>
-                                {!audioStatus ? <><audio controls src={audioURL} />  {inputValue}</> :
+                              ) : (<><span onClick={startAudio} style={{cursor:'pointer'}}><FiMic size={24} color="#333" /></span>
+                                {!audioStatus ? <> {inputValue}</> :
                                   (<span style={{ marginLeft: '10px' }}>Recording...  </span>
 
                                   )}
